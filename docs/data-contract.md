@@ -1,61 +1,54 @@
-# A1 清洗规则与 PostgreSQL 数据契约
+# A1 Cleaning Rules and PostgreSQL Data Contract
 
-本契约基于 DataHive 数据集的固定版本 `2531d9083bd3aab11261eab7e69d0d0f358a6d6f`。原始数据审计见 [data-audit.md](data-audit.md)，本次清洗计数见 [cleaning-report.json](cleaning-report.json)。
+This contract uses pinned DataHive revision 2531d9083bd3aab11261eab7e69d0d0f358a6d6f. See [data-audit.md](data-audit.md) for source profiling and [cleaning-report.json](cleaning-report.json) for cleaning counts.
 
-## 运行清洗
+## Run the cleaner
 
-从仓库根目录执行：
+Run from the repository root:
 
-```bash
-python3 pipeline/clean_dataset.py \
-  --products data/raw/products.csv \
-  --reviews data/raw/reviews.csv \
-  --output-dir data/processed \
-  --report docs/cleaning-report.json
-```
+    python3 pipeline/clean_dataset.py --products data/raw/products.csv --reviews data/raw/reviews.csv --output-dir data/processed --report docs/cleaning-report.json
 
-输出是 `data/processed/products_clean.csv` 和 `data/processed/reviews_clean.csv`。两份原始 CSV 不会被修改；`data/processed/` 已被 Git 忽略。`source_row_number` 是原 CSV 中从 1 开始的数据记录序号，不是物理行号，因为正文可能换行。`source_row_hash` 是按原始 CSV 字段顺序计算的 SHA-256，用于识别完全相同的源记录；它不表示评论真假。
+The outputs are data/processed/products_clean.csv and data/processed/reviews_clean.csv. The source files are unchanged, and Git ignores data/processed/. source_row_number is the one-based CSV record number, not the physical line number, because review text may contain line breaks. source_row_hash is a SHA-256 digest of the source CSV field values in source-column order. It identifies identical source records; it is not a fraud label.
 
-本版结果：2,727 个商品全部保留；255,966 条原始评论中移除 3,832 条所有 CSV 字段相同的重复记录，输出 252,134 条。没有其他记录被拒绝。清洗脚本若遇到必填字段缺失、值越界、无法解析的日期或 JSON、孤立 `asin`，会在报告中记录拒绝原因和数量。
+This snapshot retained all 2,727 products. Of 255,966 source reviews, the cleaner removed 3,832 rows whose CSV field values were identical to an earlier row, leaving 252,134 reviews. No other rows were rejected. If future input has missing required fields, out-of-range values, invalid dates or JSON, or orphan ASINs, the report records counts by rejection reason.
 
-## 字段及规则
+## Field mapping and rules
 
-| 来源 | 数据库字段 | 规则 |
+| Source field | Database field | Rule |
 | --- | --- | --- |
-| `products.asin` | `reviewtrust.products.asin` | 大写、10 位字母数字；商品主键 |
-| `products.title` | `title` | 必填，去首尾空白 |
-| `products.rating` | `source_rating` | 商品页展示评分，1–5；与样本评论均分不同 |
-| `products.number_of_ratings` | `source_rating_count` | 商品页展示评分数量；与样本行数不同 |
-| `products.breadcrumbs` | `category_breadcrumbs` | 可空；保留原分类路径 |
-| `products.alt_images`, `characteristics` | 同名 `jsonb` | 分别验证为 JSON 数组、JSON 对象 |
-| `reviews.id` | `source_review_id` | 必填但不唯一；不能作主键 |
-| `reviews.asin` | `asin` | 必须能关联到 `products.asin` |
-| `reviews.body` | `body` | 保留非空原文；空白正文存 NULL，不因空正文删除评分 |
-| `reviews.date` | `review_date` | 解析源格式，存 PostgreSQL `date` |
-| `reviews.stars` | `stars` | 1–5 的整数 |
-| `reviews.verified_purchase` | `verified_purchase` | `1`/`true` 为 TRUE，`0`/`false` 为 FALSE，空值为 NULL；NULL 不是 FALSE |
-| `reviews.found_helpful` | `found_helpful` | 非负整数 |
-| `reviews.images`, `videos` | 同名 `jsonb` | 验证为 JSON 数组 |
-| `reviews.variation` | `variation` | 普通文本；源值不是 JSON |
+| products.asin | reviewtrust.products.asin | Uppercase, ten alphanumeric characters; product primary key |
+| products.title | title | Required; trim surrounding whitespace |
+| products.rating | source_rating | Source product-page rating, 1-5; separate from the sample mean |
+| products.number_of_ratings | source_rating_count | Source product-page rating count; separate from sampled review count |
+| products.breadcrumbs | category_breadcrumbs | Nullable; retain the source category path |
+| products.alt_images, characteristics | Same names, jsonb | Require a JSON array and JSON object, respectively |
+| reviews.id | source_review_id | Required but not unique; cannot serve as the primary key |
+| reviews.asin | asin | Must reference products.asin |
+| reviews.body | body | Preserve nonempty source text; store blank text as NULL without dropping the rating |
+| reviews.date | review_date | Parse the source format into a PostgreSQL date |
+| reviews.stars | stars | Integer from 1 to 5 |
+| reviews.verified_purchase | verified_purchase | 1/true becomes TRUE, 0/false becomes FALSE, and empty becomes NULL; NULL is not FALSE |
+| reviews.found_helpful | found_helpful | Nonnegative integer |
+| reviews.images, videos | Same names, jsonb | Require JSON arrays |
+| reviews.variation | variation | Plain text; source values are not JSON |
 
-其余 URL、标题、描述、用户 ID 保留为可空文本。评论表使用内部 `review_pk` 主键；`source_row_hash` 唯一，`(asin, source_review_id)` 不加唯一约束，因为源文件中确有 10 条该组合相同但内容不同的评论。`loaded_at` 是入库时间，不是评论发表时间。建表定义见 [schema.sql](../database/schema.sql)。
+Other URLs, titles, descriptions, and user IDs remain nullable text. The reviews table uses an internal review_pk primary key. source_row_hash is unique, but (asin, source_review_id) is not: the source contains 10 rows whose content differs despite sharing that pair. loaded_at records database load time, not review publication time. See [schema.sql](../database/schema.sql) for the table definitions.
 
-## 给下游的查询口径
+## Query definitions for downstream teams
 
-```sql
--- 样本评分：只用本次导入且去除完全重复行的评论。
-SELECT p.asin, p.title, p.source_rating, p.source_rating_count,
-       count(r.review_pk) AS sample_review_count,
-       round(avg(r.stars), 2) AS sample_rating
-FROM reviewtrust.products AS p
-LEFT JOIN reviewtrust.reviews AS r ON r.asin = p.asin
-GROUP BY p.asin;
-```
+The following query computes the mean from deduplicated sampled reviews and keeps it separate from the source product-page rating:
 
-- B 组：对文本相似度和 Pros & Cons 使用 `body IS NOT NULL` 的评论；做评分统计时可包含空正文但有合法星级的评论。不要把 `verified_purchase IS NULL` 当成未验证购买。
-- C/D 组：页面需分别标注 `source_rating`（商品页评分）与基于 CSV 子集的 `sample_rating`。数据日期范围为 1999-07-12 至 2025-07-17，且大多数商品只有最多 100 条评论样本。
-- A2：可使用 `source_row_hash` 识别重复来源记录；未来版本应另行记录批次和版本，不把 `source_row_number` 当成跨版本稳定 ID。
+    SELECT p.asin, p.title, p.source_rating, p.source_rating_count,
+           count(r.review_pk) AS sample_review_count,
+           round(avg(r.stars), 2) AS sample_rating
+    FROM reviewtrust.products AS p
+    LEFT JOIN reviewtrust.reviews AS r ON r.asin = p.asin
+    GROUP BY p.asin;
 
-## 已完成验证
+- **Team B:** Use reviews with body IS NOT NULL for text similarity and Pros & Cons. Rating aggregates may include reviews with valid stars and empty body text. Do not treat verified_purchase IS NULL as an unverified purchase.
+- **Teams C and D:** Label source_rating as the product-page rating and sample_rating as the mean of this CSV subset. Review dates range from 1999-07-12 to 2025-07-17, and most products have at most 100 sampled reviews.
+- **A2:** Use source_row_hash to recognize duplicate source records. Record future load batches and revisions separately; source_row_number is not stable across revisions.
 
-使用临时 PostgreSQL 16 容器执行 [schema.sql](../database/schema.sql) 并导入两份清洗后 CSV：商品 2,727 行、评论 252,134 行；外键、`jsonb`、日期、布尔值、检查约束全部通过。导入后有 206 条空正文、2,395 条购买验证状态未知；同一 `(asin, source_review_id)` 但内容不同的额外行有 10 条。临时容器已移除。
+## Validation completed
+
+The schema and both cleaned CSV files loaded successfully into PostgreSQL 16: 2,727 products and 252,134 reviews passed the foreign key, jsonb, date, boolean, and check constraints. The loaded data contains 206 reviews with NULL body and 2,395 with unknown verified-purchase status. All 10 differing rows that share an (asin, source_review_id) pair remain. The temporary validation container was removed. A persistent local database and repeatable import are documented in [database-setup.md](database-setup.md).

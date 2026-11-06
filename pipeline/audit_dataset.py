@@ -134,7 +134,11 @@ def scan(path: Path, kind: str) -> tuple[dict, dict]:
             if kind == "products":
                 breadcrumb = normalized(row.get("breadcrumbs"))
                 if breadcrumb:
-                    categories[breadcrumb.split(" -> ")[0]] += 1
+                    category = breadcrumb.split(" -> ")[0]
+                    # Keep the committed audit report in English without changing raw data.
+                    if not category.isascii():
+                        category = "Non-ASCII source category labels"
+                    categories[category] += 1
             else:
                 star_counts[normalized(row.get("stars")) or "<empty>"] += 1
                 value = normalized(row.get("date"))
