@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-reviewtrust}
+      POSTGRES_USER: ${POSTGRES_USER:-reviewtrust}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-reviewtrust_dev}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-reviewtrust} -d ${POSTGRES_DB:-reviewtrust}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  postgres_data:
