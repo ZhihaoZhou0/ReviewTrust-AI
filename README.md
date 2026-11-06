@@ -24,7 +24,9 @@ The planned MVP uses PostgreSQL, Python analysis modules, and a Streamlit + Plot
 | B1 - Trust analytics | Review similarity, anomaly signals, and explainable weighted ratings | Planned |
 | B2 - NLP | Pros and cons extraction and evaluation | Planned |
 | C - Integration | Python data access, PostgreSQL queries, and module integration | Planned |
-| D - Dashboard | Product search, trust views, pros and cons, and two-product comparison | Planned |
+| D - Dashboard | Product search, trust views, pros and cons, and two-product comparison | In progress on this branch |
+
+The first D preview is now in progress on this branch. It includes live product search, factual review-sample views, and a two-product comparison; B1/B2 analysis panels remain pending. See [dashboard-handoff.md](docs/dashboard-handoff.md) for local setup and integration details.
 
 ## A1: completed data foundation
 
