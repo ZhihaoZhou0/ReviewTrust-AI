@@ -1,0 +1,19 @@
+{
+  "products": {
+    "input_rows": 2727,
+    "output_rows": 2727
+  },
+  "reviews": {
+    "input_rows": 255966,
+    "output_rows": 252134,
+    "removed_exact_duplicate": 3832
+  },
+  "rules": {
+    "deduplication": "Remove only byte-identical CSV field values; retain rows with the same source ID but different content.",
+    "missing_optional_text": "Convert empty or whitespace-only optional fields to SQL NULL via empty CSV values.",
+    "review_body": "Preserve nonempty original text exactly; blank text becomes SQL NULL.",
+    "verified_purchase": "1/true -> true, 0/false -> false, empty -> SQL NULL.",
+    "date": "Parse source date and write ISO YYYY-MM-DD.",
+    "invalid_required_data": "Reject rows with invalid ASIN, required ID/title/date/rating/stars/helpful count, malformed JSON, or orphan ASIN."
+  }
+}
