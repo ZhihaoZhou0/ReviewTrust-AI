@@ -61,7 +61,7 @@ SELECT asin, source_review_id, review_url, review_title, body,
        review_date, stars, user_id, variation, found_helpful,
        verified_purchase, images, videos, source_row_number, source_row_hash
 FROM stage_reviews
-ON CONFLICT (source_row_hash) DO NOTHING;
+ON CONFLICT (source_row_number) DO NOTHING;
 
 DO $$
 BEGIN
@@ -73,7 +73,9 @@ BEGIN
     END IF;
     IF (SELECT count(*) FROM stage_reviews) !=
        (SELECT count(*) FROM stage_reviews AS s
-        JOIN reviewtrust.reviews AS r ON r.source_row_hash = s.source_row_hash)
+        JOIN reviewtrust.reviews AS r
+          ON r.source_row_number = s.source_row_number
+         AND r.source_row_hash = s.source_row_hash)
     THEN
         RAISE EXCEPTION 'Review staging rows do not match loaded reviews';
     END IF;

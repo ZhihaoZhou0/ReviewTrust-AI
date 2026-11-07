@@ -33,9 +33,17 @@ CREATE TABLE IF NOT EXISTS reviewtrust.reviews (
     images               jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(images) = 'array'),
     videos               jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(videos) = 'array'),
     source_row_number    bigint NOT NULL CHECK (source_row_number > 0),
-    source_row_hash      char(64) NOT NULL UNIQUE,
+    source_row_hash      char(64) NOT NULL,
     loaded_at            timestamptz NOT NULL DEFAULT now()
 );
+
+-- Existing A1 databases used a content-hash uniqueness constraint. Remove it
+-- so identical source reviews remain separate observations.
+ALTER TABLE reviewtrust.reviews DROP CONSTRAINT IF EXISTS reviews_source_row_hash_key;
+CREATE UNIQUE INDEX IF NOT EXISTS reviews_source_row_number_uidx
+    ON reviewtrust.reviews (source_row_number);
+CREATE INDEX IF NOT EXISTS reviews_source_row_hash_idx
+    ON reviewtrust.reviews (source_row_hash);
 
 CREATE INDEX IF NOT EXISTS reviews_asin_date_idx ON reviewtrust.reviews (asin, review_date DESC);
 CREATE INDEX IF NOT EXISTS reviews_asin_stars_idx ON reviewtrust.reviews (asin, stars);

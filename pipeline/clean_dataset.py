@@ -1,6 +1,6 @@
 """Clean the pinned DataHive CSVs into PostgreSQL-ready CSV files.
 
-Only exact, whole-row review duplicates are removed. Source files are never edited.
+Every valid source review row is retained, including identical rows. Source files are never edited.
 This module uses the Python standard library and reads rows incrementally.
 """
 
@@ -175,7 +175,6 @@ def process_file(
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".tmp")
     stats = Counter()
-    seen_hashes: set[str] = set()
     accepted_asins: set[str] = set()
     try:
         with source.open("r", encoding="utf-8-sig", newline="") as input_file, temporary.open("w", encoding="utf-8", newline="") as output_file:
@@ -190,9 +189,6 @@ def process_file(
                     stats["rejected_malformed_csv"] += 1
                     continue
                 digest = row_hash(row, expected_columns)
-                if digest in seen_hashes:
-                    stats["removed_exact_duplicate"] += 1
-                    continue
                 try:
                     if kind == "products":
                         cleaned = clean_product(row, row_number, digest)
@@ -203,7 +199,6 @@ def process_file(
                 except InvalidRow as error:
                     stats[f"rejected_{error}"] += 1
                     continue
-                seen_hashes.add(digest)
                 accepted_asins.add(cleaned["asin"])
                 writer.writerow(cleaned)
                 stats["output_rows"] += 1
@@ -233,7 +228,7 @@ def main() -> None:
         "products": product_stats,
         "reviews": review_stats,
         "rules": {
-            "deduplication": "Remove only byte-identical CSV field values; retain rows with the same source ID but different content.",
+            "review_retention": "Retain every valid source review row, including rows with identical content or source IDs.",
             "missing_optional_text": "Convert empty or whitespace-only optional fields to SQL NULL via empty CSV values.",
             "review_body": "Preserve nonempty original text exactly; blank text becomes SQL NULL.",
             "verified_purchase": "1/true -> true, 0/false -> false, empty -> SQL NULL.",

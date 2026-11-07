@@ -48,7 +48,7 @@ Three products have non-ASCII top-level category labels. The audit JSON groups t
 
 ## Implications for A1 and downstream teams
 
-1. **Keys:** products.asin can be the product primary key. Neither review id nor (asin, id) is unique. Use an internal review key, retain source_review_id and asin, remove only exact whole-row duplicates, and retain the 10 differing rows that share an (asin, id) pair.
+1. **Keys:** products.asin can be the product primary key. Neither review id nor (asin, id) is unique. Use an internal review key and retain every valid source review row, including the 3,832 additional exact repeats and the 10 differing rows that share an (asin, id) pair. Source row number identifies a row for idempotent loading within this pinned revision; content hash is deliberately non-unique.
 2. **Rating definitions:** For 2,680 of the 2,689 comparable products, the source number_of_ratings differs from the number of sampled CSV reviews. Keep the source rating and the sampled-review mean as separate metrics.
 3. **Sample coverage:** Exactly 2,478 products have 100 reviews each, indicating a per-product sample cap. The sampled dates and ratings do not represent each product's complete review history. Label any weighted rating as based on this sample.
 4. **Suspicious signals:** verified_purchase contains only 1 or an empty value; empty does not prove an unverified purchase. The 20,549 additional rows with identical body text are text matches, not confirmed fake reviews.

@@ -16,7 +16,7 @@ Run from the repository root:
     docker compose up -d --wait db
     python3 pipeline/load_snapshot.py
 
-The second command cleans the source CSV files again, creates the schema, loads both cleaned files into temporary tables, and writes to the final tables in one database transaction. An import failure rolls back the transaction. Re-running the command does not create duplicate products or reviews. Existing products are updated if their source content changes; reviews are deduplicated by source_row_hash. A2 owns the strategy for incremental loading of future dataset revisions.
+The second command verifies both raw files against A1's committed sizes and SHA-256 digests, cleans them, creates the A1 schema and A2 checkpoint table, loads both cleaned files into temporary tables, and writes to the final tables in one database transaction. An import failure rolls back the transaction. Re-running the command does not import the same source positions twice. Identical review content at distinct source positions remains in PostgreSQL. Existing products are updated if their source content changes; future source revisions need an explicit product-update and provenance strategy.
 
 Local development defaults:
 
@@ -36,10 +36,10 @@ Override POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, or POSTGRES_PASSWORD through
     docker compose exec db psql -U reviewtrust -d reviewtrust -c "SELECT count(*) FROM reviewtrust.products;"
     docker compose exec db psql -U reviewtrust -d reviewtrust -c "SELECT count(*) FROM reviewtrust.reviews;"
 
-The pinned snapshot should contain 2,727 products and 252,134 deduplicated reviews. See the [data contract](data-contract.md) for field definitions and a downstream rating query.
+The pinned snapshot should contain 2,727 products and all 255,966 source review rows. See the [data contract](data-contract.md) for field definitions and a downstream rating query.
 
 Use docker compose stop db to pause the database. Running docker compose up -d --wait db again reuses the named volume. docker compose down removes the containers and network while retaining the volume.
 
 ## Validation completed
 
-The import ran twice against local PostgreSQL 16. The first run inserted 2,727 products and 252,134 reviews. The second run inserted zero rows into both final tables, and the counts remained unchanged. Staging-table checks passed on both runs.
+The original A1 import was validated with 252,134 deduplicated reviews. The revised import retains all 255,966 source reviews and migrates existing A1 databases by removing content-hash uniqueness. Re-running the revised import leaves the counts unchanged; staging-table checks confirm every source position and content hash is represented.

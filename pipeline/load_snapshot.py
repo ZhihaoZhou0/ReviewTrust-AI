@@ -13,6 +13,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from pipeline.source import verify_source_files
+
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_PRODUCTS = ROOT / "data/raw/products.csv"
@@ -24,6 +27,11 @@ def main() -> int:
     missing = [str(path.relative_to(ROOT)) for path in (RAW_PRODUCTS, RAW_REVIEWS) if not path.is_file()]
     if missing:
         print(f"Missing source files: {', '.join(missing)}. See docs/data-audit.md for pinned download commands.", file=sys.stderr)
+        return 2
+    try:
+        verify_source_files()
+    except (ValueError, FileNotFoundError) as error:
+        print(f"Source verification failed: {error}", file=sys.stderr)
         return 2
     psql = shutil.which("psql")
     if not psql:
@@ -54,7 +62,8 @@ def main() -> int:
     env.setdefault("PGPASSWORD", env.get("POSTGRES_PASSWORD", "reviewtrust_dev"))
     command = [
         psql, "-X", "-v", "ON_ERROR_STOP=1", "-1",
-        "-f", "database/schema.sql", "-f", "database/load_snapshot.sql",
+        "-f", "database/schema.sql", "-f", "database/etl_batches.sql",
+        "-f", "database/load_snapshot.sql",
     ]
     try:
         subprocess.run(command, check=True, cwd=ROOT, env=env)
