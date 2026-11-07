@@ -1,5 +1,6 @@
 """ReviewTrust's product evidence desk: real sample data, clearly labeled."""
 from __future__ import annotations
+from dashboard.hybrid_search import hybrid_rank_products
 
 import sys
 from html import escape
@@ -72,6 +73,13 @@ st.markdown(f"<style>{Path(__file__).with_name('styles.css').read_text()}</style
 @st.cache_data(ttl=120, show_spinner=False)
 def catalog() -> list[Product]:
     return load_catalog()
+
+@st.cache_resource(show_spinner="Building semantic search index...")
+def semantic_index(products: tuple[Product, ...]):
+    """Cache the SBERT model and product embeddings."""
+    from dashboard.semantic_search import SemanticProductSearch
+
+    return SemanticProductSearch(list(products))
 
 @st.cache_data(ttl=120, show_spinner=False)
 def snapshot(asin: str) -> ProductSnapshot | None:
@@ -499,7 +507,19 @@ if st.session_state["view"] == "Explore":
         for column, term in zip(st.columns(3, gap="small"), ("water bottle", "headphones", "hair dryer")):
             with column:
                 st.button(f"{term.title()} ↗", key=f"search_suggestion_{term}", on_click=set_search_query, args=(term,), use_container_width=True)
-    matches = filter_products(products, query, category)
+    
+    if len(query.strip().split()) >= 4:
+        # Natural-language query: use cached semantic search.
+        selected_products = filter_products(products, "", category)
+        matches = hybrid_rank_products(
+            selected_products,
+            query,
+            semantic_index(tuple(products)),
+        )
+    else:
+        # Short product keywords and ASINs: use BM25.
+        matches = filter_products(products, query, category)
+
     st.markdown(f'<div class="rt-search-count"><strong>{len(matches):,}</strong> matching products <span>↓ &nbsp; START WITH A MATCH</span></div>', unsafe_allow_html=True)
     if not matches:
         st.markdown('<div class="rt-search-empty"><strong>No match in this review snapshot.</strong><p>Try a shorter product name or another category.</p></div>', unsafe_allow_html=True)

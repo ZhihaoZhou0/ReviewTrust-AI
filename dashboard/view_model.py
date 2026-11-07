@@ -1,3 +1,4 @@
+
 """Small presentation helpers shared by the Explore and Compare views."""
 
 from __future__ import annotations
@@ -6,9 +7,11 @@ import re
 from urllib.parse import parse_qs, urlparse
 
 from dashboard.data_access import Product
+from dashboard.search_ranker import rank_products
 
 
 ASIN_PATTERN = re.compile(r"^[A-Z0-9]{10}$")
+
 
 
 def amazon_asin(link: str) -> str | None:
@@ -39,17 +42,20 @@ def amazon_asin(link: str) -> str | None:
 def filter_products(
     products: list[Product], query: str, category: str
 ) -> list[Product]:
-    """Match all search terms against title or ASIN while preserving catalog order."""
-    terms = query.casefold().split()
-    return [
-        product
-        for product in products
-        if (category == "All categories" or product.category == category)
-        and all(
-            term in f"{product.title} {product.asin}".casefold()
-            for term in terms
-        )
-    ]
+    """Filter products by category and rank using BM25."""
+
+    # Preserve existing category filtering.
+    if category == "All categories":
+        filtered = products
+    else:
+        filtered = [
+            product
+            for product in products
+            if product.category == category
+        ]
+
+    # Use BM25 for product relevance ranking.
+    return rank_products(filtered, query)
 
 
 def product_label(product: Product) -> str:
