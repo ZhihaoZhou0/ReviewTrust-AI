@@ -5,11 +5,10 @@
   },
   "reviews": {
     "input_rows": 255966,
-    "output_rows": 252134,
-    "removed_exact_duplicate": 3832
+    "output_rows": 255966
   },
   "rules": {
-    "deduplication": "Remove only byte-identical CSV field values; retain rows with the same source ID but different content.",
+    "review_retention": "Retain every valid source review row, including rows with identical content or source IDs.",
     "missing_optional_text": "Convert empty or whitespace-only optional fields to SQL NULL via empty CSV values.",
     "review_body": "Preserve nonempty original text exactly; blank text becomes SQL NULL.",
     "verified_purchase": "1/true -> true, 0/false -> false, empty -> SQL NULL.",
