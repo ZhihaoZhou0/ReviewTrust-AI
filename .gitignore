@@ -218,3 +218,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ReviewTrust AI - Local datasets
+data/raw/
+data/processed/
+
+# Large generated data files
+*.parquet
+
+# Local environment configuration
+.env.*
+!.env.example
+
+# Generated ML models
+models/*.joblib
+models/*.pkl
