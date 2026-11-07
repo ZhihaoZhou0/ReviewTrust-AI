@@ -62,9 +62,11 @@ div[data-testid="stSegmentedControl"] button,div[data-testid="stButton"] button 
 [data-testid="stImage"] img { object-fit:contain; background:#F0F0E8; border:1px solid var(--line); border-radius:3px; max-height:260px; }
 @media (max-width:700px) { .block-container { padding-top:.7rem; } .rt-topnote { display:none; } .rt-intro { padding:1.8rem 0 1rem; } .rt-section-head { display:block; } .rt-section-head p { margin-top:.5rem; } .rt-future { display:block; } .rt-future span { display:block; margin-top:.65rem; } }
 </style>
-<div class="rt-topline"><div class="rt-wordmark"><span class="rt-symbol">◒</span> ReviewTrust<span style="color:#7D973F">.</span></div><div class="rt-topnote">The review evidence desk &nbsp; / &nbsp; Hackathon preview</div></div>
-<div class="rt-intro"><div class="rt-eyebrow">A clearer way to read product reviews</div><h1>Look closer.<br><em>Choose better.</em></h1><p>Explore what a real review sample says about a product, then place two products side by side. Every number here tells you where it came from.</p></div>
+<div class="rt-topline"><div class="rt-wordmark"><span class="rt-symbol">✦</span> ReviewTrust<span style="color:#7767DF">.</span></div><div class="rt-topnote">Discover the story behind the stars &nbsp; / &nbsp; Review evidence, made clear</div></div>
+<div class="rt-intro"><div class="rt-hero-copy"><div class="rt-eyebrow">A MORE CONFIDENT WAY TO SHOP</div><h1>Good products deserve<br><em>a closer look.</em></h1><p>Look past the headline rating. Explore real review evidence, understand the sample, and compare products with more clarity.</p><div class="rt-hero-prompt">↓ &nbsp; START EXPLORING BELOW</div></div><div class="rt-hero-art" aria-hidden="true"><div class="rt-orbit"></div><div class="rt-art-card rt-art-one"><small>01 / EXPLORE</small><strong>Find your next<br>favorite thing.</strong><span>✳</span></div><div class="rt-art-card rt-art-two"><small>02 / UNDERSTAND</small><strong>See what real<br>reviews say.</strong><span>★</span></div><div class="rt-art-sticker">THE<br>FULL<br>STORY ↗</div></div></div>
+<div class="rt-value-strip"><span>✳ &nbsp; REAL REVIEW EXCERPTS</span><span>◇ &nbsp; CLEAR SAMPLE CONTEXT</span><span>↗ &nbsp; SIDE-BY-SIDE COMPARISON</span></div>
 """, unsafe_allow_html=True)
+st.markdown(f"<style>{Path(__file__).with_name('styles.css').read_text()}</style>", unsafe_allow_html=True)
 
 @st.cache_data(ttl=120, show_spinner=False)
 def catalog() -> list[Product]:
@@ -97,6 +99,25 @@ def compare_from_explore(product: Product) -> None:
     st.session_state["compare_left_product"] = product
     st.session_state["view"] = "Compare"
 
+def open_featured(product: Product) -> None:
+    st.session_state["product_search"] = product.title
+    st.session_state["category_filter"] = "All categories"
+    st.session_state["selected_product"] = product
+    st.session_state["view"] = "Explore"
+
+def featured_card(product: Product, index: int) -> None:
+    tones = ("lavender", "apricot", "citron")
+    image = (f'<img src="{escape(product.image_url, quote=True)}" alt="{escape(product.title, quote=True)}" loading="lazy">'
+             if product.image_url and product.image_url.startswith(("https://", "http://"))
+             else '<span class="rt-no-image">Product image unavailable</span>')
+    st.markdown(
+        f'<article class="rt-feature-card"><div class="rt-feature-image {tones[index % 3]}"><span class="rt-feature-tag">0{index + 1} / FROM THE CATALOG</span>{image}</div>'
+        f'<div class="rt-feature-body"><div class="rt-micro">{escape(product.category)}</div><h3>{escape(product.title)}</h3>'
+        f'<div class="rt-feature-meta"><span><strong>{product.source_rating:.1f} ★</strong> listed rating</span><span>{product.source_rating_count:,} listed ratings</span></div></div></article>',
+        unsafe_allow_html=True,
+    )
+    st.button("Explore review evidence ↗", key=f"featured_{product.asin}", on_click=open_featured, args=(product,), use_container_width=True)
+
 def show_review(review: ReviewExcerpt) -> None:
     body = review.body.strip()
     if len(body) > 440:
@@ -120,10 +141,28 @@ if not products:
     st.stop()
 if "view" not in st.session_state:
     st.session_state["view"] = "Explore"
+section("A few places to start", "01 / THE COLLECTION", "Real products from the catalog")
+featured_asins = ("B085DVHQ57", "B097CNMZF5", "B0014BYHJE")
+products_by_asin = {product.asin: product for product in products}
+featured = [products_by_asin[asin] for asin in featured_asins if asin in products_by_asin]
+featured_categories = {product.category for product in featured}
+for product in products:
+    if len(featured) < 3 and product.category not in featured_categories:
+        featured.append(product)
+        featured_categories.add(product.category)
+    if len(featured) == 3:
+        break
+if len(featured) < 3:
+    featured.extend(product for product in products if product not in featured)
+    featured = featured[:3]
+for index, (column, product) in enumerate(zip(st.columns(3, gap="medium"), featured)):
+    with column:
+        featured_card(product, index)
+st.markdown('<div class="rt-workspace-intro"><div class="rt-eyebrow">YOUR RESEARCH DESK</div><h2>Shop with the full story.</h2><p>Search the catalog, inspect the review sample, or compare two products.</p></div>', unsafe_allow_html=True)
 st.segmented_control("Workspace", ["Explore", "Compare"], key="view", selection_mode="single", required=True, label_visibility="collapsed")
 
 if st.session_state["view"] == "Explore":
-    section("Find your product", "01 / SEARCH", "Search by name or product ID")
+    section("Find your product", "02 / SEARCH", "Search by name or product ID")
     search_col, category_col = st.columns([2.2, 1], gap="medium")
     with search_col:
         query = st.text_input("Product name or ASIN", placeholder="Try headphones, water bottle, or an ASIN", key="product_search")
@@ -135,10 +174,12 @@ if st.session_state["view"] == "Explore":
     if not matches:
         st.warning("No products match. Try a shorter search or another category.")
     else:
+        if st.session_state.get("selected_product") not in matches[:60]:
+            st.session_state.pop("selected_product", None)
         chosen = st.selectbox("Choose a product to inspect", matches[:60], format_func=product_label, key="selected_product")
         selected = snapshot(chosen.asin)
         if selected is not None:
-            section("Product dossier", "02 / INSPECT", "Source facts and sampled evidence")
+            section("The product at a glance", "03 / INSPECT", "Source facts and sampled evidence")
             image_col, identity_col = st.columns([.85, 2.15], gap="large")
             with image_col:
                 if selected.product.image_url and selected.product.image_url.startswith(("https://", "http://")):
@@ -151,7 +192,7 @@ if st.session_state["view"] == "Explore":
             with two: stat("Rating from sample", f"{selected.sample_rating:.2f} / 5" if selected.sample_rating is not None else "—", "Mean of cleaned reviews in this dataset")
             with three: stat("Reviews in sample", f"{selected.sample_review_count:,}", "Historical review records available here")
             st.markdown('<div class="rt-note">These ratings come from different populations. The product-page rating reflects its listed rating count; the sample mean uses only cleaned reviews available in this dataset.</div>', unsafe_allow_html=True)
-            section("Read the evidence", "03 / EVIDENCE", "Distribution and original review excerpts")
+            section("Go beyond the stars", "04 / EVIDENCE", "Distribution and original review excerpts")
             chart_col, review_col = st.columns([1.1, 1], gap="large")
             with chart_col:
                 st.markdown('<div class="rt-micro">Ratings in this sample</div>', unsafe_allow_html=True)
@@ -165,7 +206,7 @@ if st.session_state["view"] == "Explore":
                 else:
                     st.caption("No review text is available for this product.")
 else:
-    section("Compare two products", "01 / COMPARE", "One clear view of the same evidence")
+    section("Compare two products", "02 / COMPARE", "One clear view of the same evidence")
     st.caption("Choose two distinct products. Ratings and counts below retain their original source labels.")
     left_col, right_col = st.columns(2, gap="large")
     with left_col:
@@ -181,7 +222,7 @@ else:
             with left_col: compare_card(left_snapshot, "01")
             with right_col: compare_card(right_snapshot, "02")
             st.markdown('<div class="rt-note">Sample ratings summarize only the cleaned reviews available here. A higher sample mean does not establish that one product is more trustworthy.</div>', unsafe_allow_html=True)
-            section("Rating patterns", "02 / EVIDENCE", "Review counts by star rating")
+            section("Rating patterns", "03 / EVIDENCE", "Review counts by star rating")
             st.plotly_chart(star_chart(left_snapshot, right_snapshot), width="stretch", config={"displayModeBar": False})
 
 st.markdown('<div class="rt-future"><div><strong>Trust signals and recurring themes</strong><p>Deeper review analysis is being developed. When available, this desk will show weighted ratings, unusual patterns, and evidence-backed pros and cons.</p></div><span>COMING IN A LATER RELEASE ↗</span></div><div class="rt-footer">DataHive Amazon Reviews sample &nbsp; / &nbsp; Historical data, not live Amazon ratings &nbsp; / &nbsp; Review patterns are not fraud verdicts</div>', unsafe_allow_html=True)

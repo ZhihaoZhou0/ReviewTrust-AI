@@ -1,6 +1,6 @@
 # Dashboard Milestone 1 and Team Handoff
 
-The Streamlit evidence desk is implemented on the D feature branch. It reads the completed A1 PostgreSQL database and keeps unfinished trust and theme analysis in a clearly labeled future state. The interface uses a warm editorial palette, restrained typography, and a search-to-evidence-to-compare flow.
+The Streamlit evidence desk is implemented on the D feature branch. It reads the completed A1 PostgreSQL database and keeps unfinished trust and theme analysis in a clearly labeled future state. The interface now presents the same live workflow as a consumer-facing shopping research page: a visual introduction, three real catalog picks, product search, review evidence, and comparison. All UI copy is in English.
 
 ## Run locally
 
@@ -10,18 +10,18 @@ From the repository root, after following [database-setup.md](database-setup.md)
     .venv/bin/python -m pip install -r requirements-dashboard.txt
     docker compose up -d --wait db
     python3 pipeline/load_snapshot.py
-    .venv/bin/streamlit run dashboard/app.py
+    .venv/bin/python -m streamlit run dashboard/app.py
 
 The dashboard opens at http://localhost:8501. It expects the A1 local database at 127.0.0.1:5433 by default. The data access layer also accepts PGHOST, PGPORT, PGDATABASE, PGUSER, and PGPASSWORD, matching the A1 loader.
 
 ## Current user flow
 
-1. Search by product name or ASIN, optionally filter by category, and choose a result.
+1. Open a featured product from the catalog, or search by product name or ASIN, optionally filter by category, and choose a result.
 2. Inspect the product-page rating, the mean of cleaned sampled reviews, sample size, review date range, and a Plotly rating distribution.
 3. Read a small set of original review excerpts with their source IDs.
 4. Use "Compare this product" or the Compare navigation to place two products side by side, then inspect their factual metrics and rating distributions.
 
-A small future-analysis note replaces large empty panels. The app does not invent weighted ratings, fraud labels, or extracted themes. Product-page ratings and sample means are labeled separately throughout.
+A small future-analysis note replaces large empty panels. The app does not invent weighted ratings, fraud labels, extracted themes, prices, or purchasing functionality. Product-page ratings and sample means are labeled separately throughout. Featured products use their actual catalog images and listed ratings; the cards are entry points, not product recommendations.
 
 ## Integration boundary for B1, B2, and C
 
