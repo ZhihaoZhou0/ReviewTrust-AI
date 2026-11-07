@@ -4,6 +4,7 @@ from __future__ import annotations
 import sys
 from html import escape
 from pathlib import Path
+from textwrap import shorten
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import plotly.graph_objects as go
@@ -78,7 +79,7 @@ def snapshot(asin: str) -> ProductSnapshot | None:
 
 @st.cache_data(ttl=120, show_spinner=False)
 def recent_reviews(asin: str) -> list[ReviewExcerpt]:
-    return load_recent_reviews(asin)
+    return load_recent_reviews(asin, limit=6)
 
 def section(title: str, number: str, note: str = "") -> None:
     st.markdown(f'<div class="rt-section-head"><div><div class="rt-section-label">{escape(number)}</div><h2>{escape(title)}</h2></div><p>{escape(note)}</p></div>', unsafe_allow_html=True)
@@ -105,24 +106,38 @@ def open_featured(product: Product) -> None:
     st.session_state["selected_product"] = product
     st.session_state["view"] = "Explore"
 
-def featured_card(product: Product, index: int) -> None:
-    tones = ("lavender", "apricot", "citron")
+def product_image(product: Product) -> str:
     image = (f'<img src="{escape(product.image_url, quote=True)}" alt="{escape(product.title, quote=True)}" loading="lazy">'
              if product.image_url and product.image_url.startswith(("https://", "http://"))
              else '<span class="rt-no-image">Product image unavailable</span>')
+    return image
+
+def featured_card(product: Product, index: int) -> None:
+    tones = ("lavender", "apricot", "citron", "sky")
     st.markdown(
-        f'<article class="rt-feature-card"><div class="rt-feature-image {tones[index % 3]}"><span class="rt-feature-tag">0{index + 1} / FROM THE CATALOG</span>{image}</div>'
-        f'<div class="rt-feature-body"><div class="rt-micro">{escape(product.category)}</div><h3>{escape(product.title)}</h3>'
-        f'<div class="rt-feature-meta"><span><strong>{product.source_rating:.1f} ★</strong> listed rating</span><span>{product.source_rating_count:,} listed ratings</span></div></div></article>',
+        f'<article class="rt-feature-card"><div class="rt-feature-image {tones[index % 4]}"><span class="rt-feature-tag">{escape(product.category)}</span>{product_image(product)}'
+        f'<div class="rt-feature-overlay"><span>{product.source_rating:.1f} ★ listed rating</span></div></div>'
+        f'<div class="rt-feature-body"><h3 title="{escape(product.title, quote=True)}">{escape(shorten(product.title, width=78, placeholder="…"))}</h3><div class="rt-feature-meta">{product.source_rating_count:,} ratings listed on product page</div></div></article>',
         unsafe_allow_html=True,
     )
-    st.button("Explore review evidence ↗", key=f"featured_{product.asin}", on_click=open_featured, args=(product,), use_container_width=True)
+    st.button("View review evidence →", key=f"featured_{product.asin}", on_click=open_featured, args=(product,), use_container_width=True)
 
-def show_review(review: ReviewExcerpt) -> None:
+def browse_card(product: Product, index: int) -> None:
+    tones = ("lavender", "citron", "apricot", "sky")
+    st.markdown(
+        f'<article class="rt-browse-card"><div class="rt-browse-image {tones[index % 4]}">'
+        f'<span class="rt-browse-rating">★ {product.source_rating:.1f}</span>{product_image(product)}</div>'
+        f'<div class="rt-browse-info"><h3 title="{escape(product.title, quote=True)}">{escape(shorten(product.title, width=56, placeholder="…"))}</h3>'
+        f'<div>{escape(product.category)} · {product.source_rating_count:,} listed ratings</div></div></article>',
+        unsafe_allow_html=True,
+    )
+    st.button("Inspect reviews ↗", key=f"browse_{product.asin}", on_click=open_featured, args=(product,), use_container_width=True)
+
+def review_card(review: ReviewExcerpt) -> str:
     body = review.body.strip()
-    if len(body) > 440:
-        body = body[:437].rsplit(" ", 1)[0] + "..."
-    st.markdown(f'<article class="rt-review"><div class="rating">{"★" * review.stars} &nbsp; {review.stars} / 5 STARS</div><h3>{escape(review.title or "Untitled review")}</h3><p>{escape(body)}</p><div class="meta">{escape(str(review.review_date))} &nbsp; / &nbsp; Source ID {escape(review.source_review_id)}</div></article>', unsafe_allow_html=True)
+    if len(body) > 270:
+        body = body[:267].rsplit(" ", 1)[0] + "..."
+    return f'<article class="rt-review"><div class="rating">{"★" * review.stars} &nbsp; {review.stars} / 5 STARS</div><h3>{escape(review.title or "Untitled review")}</h3><p>{escape(body)}</p><div class="meta">{escape(str(review.review_date))} &nbsp; / &nbsp; Source ID {escape(review.source_review_id)}</div></article>'
 
 def compare_card(item: ProductSnapshot, number: str) -> None:
     product = item.product
@@ -141,28 +156,58 @@ if not products:
     st.stop()
 if "view" not in st.session_state:
     st.session_state["view"] = "Explore"
-section("A few places to start", "01 / THE COLLECTION", "Real products from the catalog")
-featured_asins = ("B085DVHQ57", "B097CNMZF5", "B0014BYHJE")
+section("A closer look starts here", "01 / FEATURED PRODUCTS", "Real products from our review dataset")
+featured_asins = ("B085DVHQ57", "B097CNMZF5", "B0014BYHJE", "B01N6ZJH96")
 products_by_asin = {product.asin: product for product in products}
 featured = [products_by_asin[asin] for asin in featured_asins if asin in products_by_asin]
 featured_categories = {product.category for product in featured}
 for product in products:
-    if len(featured) < 3 and product.category not in featured_categories:
+    if len(featured) < 4 and product.category not in featured_categories:
         featured.append(product)
         featured_categories.add(product.category)
-    if len(featured) == 3:
+    if len(featured) == 4:
         break
-if len(featured) < 3:
+if len(featured) < 4:
     featured.extend(product for product in products if product not in featured)
-    featured = featured[:3]
-for index, (column, product) in enumerate(zip(st.columns(3, gap="medium"), featured)):
-    with column:
-        featured_card(product, index)
+    featured = featured[:4]
+with st.container(key="spotlight"):
+    first, middle, last = st.columns(3, gap="medium")
+    with first:
+        featured_card(featured[0], 0)
+    with middle:
+        if len(featured) > 1:
+            featured_card(featured[1], 1)
+        if len(featured) > 3:
+            featured_card(featured[2], 2)
+    with last:
+        st.markdown('<div class="rt-spotlight-copy"><div class="rt-eyebrow">THE STORY BEHIND THE STARS</div><h3>Every product has more to tell.</h3><p>Start with a product, then see the review sample behind its rating.</p></div>', unsafe_allow_html=True)
+        if len(featured) > 2:
+            featured_card(featured[-1], 3)
+
+section("Browse the collection", "02 / EXPLORE PRODUCTS", "Product images and listed ratings come from the source catalog")
+browse_categories = ["All products"] + [name for name in ("Beauty & Personal Care", "Home & Kitchen", "Electronics", "Clothing, Shoes & Jewelry", "Toys & Games") if any(product.category == name for product in products)]
+browse_category = st.pills("Product category", browse_categories, default="All products", key="browse_category", required=True, label_visibility="collapsed")
+if browse_category == "All products":
+    picks = [products_by_asin[asin] for asin in ("B085DVHQ57", "B097CNMZF5", "B0014BYHJE", "B01N6ZJH96", "B00NHQFA1I", "B0D2Z1PJWT", "B00T0C9XRK") if asin in products_by_asin]
+    for product in products:
+        if len(picks) >= 8:
+            break
+        if product not in picks and product.image_url:
+            picks.append(product)
+else:
+    picks = [product for product in products if product.category == browse_category and product.image_url][:8]
+    if not picks:
+        picks = [product for product in products if product.category == browse_category][:8]
+with st.container(key="browse_grid"):
+    for start in range(0, len(picks), 4):
+        for column, product, index in zip(st.columns(4, gap="medium"), picks[start:start + 4], range(start, min(start + 4, len(picks)))):
+            with column:
+                browse_card(product, index)
 st.markdown('<div class="rt-workspace-intro"><div class="rt-eyebrow">YOUR RESEARCH DESK</div><h2>Shop with the full story.</h2><p>Search the catalog, inspect the review sample, or compare two products.</p></div>', unsafe_allow_html=True)
 st.segmented_control("Workspace", ["Explore", "Compare"], key="view", selection_mode="single", required=True, label_visibility="collapsed")
 
 if st.session_state["view"] == "Explore":
-    section("Find your product", "02 / SEARCH", "Search by name or product ID")
+    section("Find your product", "03 / SEARCH", "Search by name or product ID")
     search_col, category_col = st.columns([2.2, 1], gap="medium")
     with search_col:
         query = st.text_input("Product name or ASIN", placeholder="Try headphones, water bottle, or an ASIN", key="product_search")
@@ -179,7 +224,7 @@ if st.session_state["view"] == "Explore":
         chosen = st.selectbox("Choose a product to inspect", matches[:60], format_func=product_label, key="selected_product")
         selected = snapshot(chosen.asin)
         if selected is not None:
-            section("The product at a glance", "03 / INSPECT", "Source facts and sampled evidence")
+            section("The product at a glance", "04 / INSPECT", "Source facts and sampled evidence")
             image_col, identity_col = st.columns([.85, 2.15], gap="large")
             with image_col:
                 if selected.product.image_url and selected.product.image_url.startswith(("https://", "http://")):
@@ -192,21 +237,18 @@ if st.session_state["view"] == "Explore":
             with two: stat("Rating from sample", f"{selected.sample_rating:.2f} / 5" if selected.sample_rating is not None else "—", "Mean of cleaned reviews in this dataset")
             with three: stat("Reviews in sample", f"{selected.sample_review_count:,}", "Historical review records available here")
             st.markdown('<div class="rt-note">These ratings come from different populations. The product-page rating reflects its listed rating count; the sample mean uses only cleaned reviews available in this dataset.</div>', unsafe_allow_html=True)
-            section("Go beyond the stars", "04 / EVIDENCE", "Distribution and original review excerpts")
-            chart_col, review_col = st.columns([1.1, 1], gap="large")
-            with chart_col:
-                st.markdown('<div class="rt-micro">Ratings in this sample</div>', unsafe_allow_html=True)
-                st.plotly_chart(star_chart(selected), width="stretch", config={"displayModeBar": False})
-                st.caption("Counts reflect the cleaned dataset sample, not all product-page ratings.")
-            with review_col:
-                st.markdown('<div class="rt-micro">Recent source reviews</div>', unsafe_allow_html=True)
-                excerpts = recent_reviews(selected.product.asin)
-                if excerpts:
-                    for review in excerpts: show_review(review)
-                else:
-                    st.caption("No review text is available for this product.")
+            section("Go beyond the stars", "05 / EVIDENCE", "Distribution and original review excerpts")
+            st.markdown('<div class="rt-micro">Ratings in this sample</div>', unsafe_allow_html=True)
+            st.plotly_chart(star_chart(selected), width="stretch", config={"displayModeBar": False})
+            st.caption("Counts reflect the cleaned dataset sample, not all product-page ratings.")
+            excerpts = recent_reviews(selected.product.asin)
+            if excerpts:
+                st.markdown('<div class="rt-review-heading"><div><div class="rt-eyebrow">IN THEIR OWN WORDS</div><h3>From the review sample</h3></div><span>SCROLL TO EXPLORE →</span></div>', unsafe_allow_html=True)
+                st.markdown('<div class="rt-review-track" aria-label="Original review excerpts">' + ''.join(review_card(review) for review in excerpts) + '</div>', unsafe_allow_html=True)
+            else:
+                st.caption("No review text is available for this product.")
 else:
-    section("Compare two products", "02 / COMPARE", "One clear view of the same evidence")
+    section("Compare two products", "03 / COMPARE", "One clear view of the same evidence")
     st.caption("Choose two distinct products. Ratings and counts below retain their original source labels.")
     left_col, right_col = st.columns(2, gap="large")
     with left_col:
@@ -222,7 +264,7 @@ else:
             with left_col: compare_card(left_snapshot, "01")
             with right_col: compare_card(right_snapshot, "02")
             st.markdown('<div class="rt-note">Sample ratings summarize only the cleaned reviews available here. A higher sample mean does not establish that one product is more trustworthy.</div>', unsafe_allow_html=True)
-            section("Rating patterns", "03 / EVIDENCE", "Review counts by star rating")
+            section("Rating patterns", "04 / EVIDENCE", "Review counts by star rating")
             st.plotly_chart(star_chart(left_snapshot, right_snapshot), width="stretch", config={"displayModeBar": False})
 
 st.markdown('<div class="rt-future"><div><strong>Trust signals and recurring themes</strong><p>Deeper review analysis is being developed. When available, this desk will show weighted ratings, unusual patterns, and evidence-backed pros and cons.</p></div><span>COMING IN A LATER RELEASE ↗</span></div><div class="rt-footer">DataHive Amazon Reviews sample &nbsp; / &nbsp; Historical data, not live Amazon ratings &nbsp; / &nbsp; Review patterns are not fraud verdicts</div>', unsafe_allow_html=True)

@@ -1,6 +1,6 @@
 # Dashboard Milestone 1 and Team Handoff
 
-The Streamlit evidence desk is implemented on the D feature branch. It reads the completed A1 PostgreSQL database and keeps unfinished trust and theme analysis in a clearly labeled future state. The interface now presents the same live workflow as a consumer-facing shopping research page: a visual introduction, three real catalog picks, product search, review evidence, and comparison. All UI copy is in English.
+The Streamlit evidence desk is implemented on the D feature branch. It reads the completed A1 PostgreSQL database and keeps unfinished trust and theme analysis in a clearly labeled future state. The interface now presents the same live workflow as a consumer-facing shopping research page: a visual introduction, a staggered four-product feature, a filterable product grid, product search, review evidence, and comparison. All UI copy is in English.
 
 ## Run locally
 
@@ -16,12 +16,14 @@ The dashboard opens at http://localhost:8501. It expects the A1 local database a
 
 ## Current user flow
 
-1. Open a featured product from the catalog, or search by product name or ASIN, optionally filter by category, and choose a result.
+1. Open a featured product, browse eight catalog products with category filters, or search by product name or ASIN and choose a result.
 2. Inspect the product-page rating, the mean of cleaned sampled reviews, sample size, review date range, and a Plotly rating distribution.
-3. Read a small set of original review excerpts with their source IDs.
+3. Scroll through original review excerpt cards with their source IDs.
 4. Use "Compare this product" or the Compare navigation to place two products side by side, then inspect their factual metrics and rating distributions.
 
 A small future-analysis note replaces large empty panels. The app does not invent weighted ratings, fraud labels, extracted themes, prices, or purchasing functionality. Product-page ratings and sample means are labeled separately throughout. Featured products use their actual catalog images and listed ratings; the cards are entry points, not product recommendations.
+
+The motion system uses CSS entrance and hover transitions, subtle hero movement, and scroll snapping for review excerpts. `prefers-reduced-motion` disables these animations for visitors who request it. The product cards remain usable without motion.
 
 ## Integration boundary for B1, B2, and C
 
