@@ -13,6 +13,7 @@ ReviewTrust AI does not claim to identify fake reviews with certainty. Its trust
 3. **Evidence-backed pros and cons (B2):** Explore recurring positive and negative product aspects, supported by actual review excerpts.
 4. **Product comparison:** Paste two supported Amazon product URLs or select products to compare their review evidence side by side.
 5. **Review exploration:** Inspect star distributions, review counts, historical review windows, and supporting review excerpts.
+6. **AI Shopping Agent:** Compare one to five supported Amazon products against explicit needs. Hard requirements are enforced before B1/B2 evidence-based ranking.
 
 ## Architecture and Tech Stack
 
@@ -79,7 +80,30 @@ Documentation:
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements-pipeline.txt
+python -m pip install -r requirements-analytics.txt
 python -m pip install -r requirements-dashboard.txt
+```
+
+To enable Thinking Machines Inkling preference extraction, set
+`TINKER_API_KEY` in the local environment before starting Streamlit. The
+application does not display or persist this key. Without it, the agent uses a
+conservative local parser and clearly labels the fallback.
+
+Set the shared team key only in the local terminal that launches Streamlit;
+do not put it in Git, `launch.json`, or Streamlit configuration files.
+
+**Windows PowerShell:**
+
+```powershell
+$env:TINKER_API_KEY = "paste-the-team-key-here"
+python -m streamlit run dashboard/app.py
+```
+
+**Linux/macOS:**
+
+```bash
+export TINKER_API_KEY="paste-the-team-key-here"
+python -m streamlit run dashboard/app.py
 ```
 
 **Linux/macOS:**
@@ -88,6 +112,7 @@ python -m pip install -r requirements-dashboard.txt
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-pipeline.txt
+python -m pip install -r requirements-analytics.txt
 python -m pip install -r requirements-dashboard.txt
 ```
 
@@ -138,9 +163,9 @@ These two analysis result files are included in the repository.
 python -m pytest tests/ -q
 ```
 
-Latest local regression result after merging PR #6:
+Latest local regression result on the AI Shopping Agent branch:
 
-**63 passed, 10 subtests passed.**
+**80 passed, 10 subtests passed.**
 
 ## Airflow Pipeline
 
@@ -163,6 +188,8 @@ The DAG is intentionally unscheduled for the historical snapshot. Its five tasks
 - Unusual review patterns are not proof of fraud.
 - B2 pros and cons reflect patterns in available review text, not guaranteed product properties.
 - The dashboard requires a populated PostgreSQL database for its core product and review views.
+- Requirements that cannot be verified from historical catalog data remain
+  unknown and are excluded from the recommendation ranking.
 
 ## Project Documentation
 
