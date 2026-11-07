@@ -112,9 +112,6 @@ def rating_distribution(item: ProductSnapshot) -> str:
         f'<p>Based on {count:,} cleaned reviews in this dataset. Counts are shown beside every bar.</p></div>'
     )
 
-def stat(label: str, value: str, detail: str) -> None:
-    st.markdown(f'<div class="rt-stat"><div class="label">{escape(label)}</div><div class="value">{escape(value)}</div><div class="detail">{escape(detail)}</div></div>', unsafe_allow_html=True)
-
 def compare_from_explore(product: Product) -> None:
     st.session_state["compare_left_product"] = product
     st.session_state["view"] = "Compare"
@@ -127,6 +124,11 @@ def open_featured(product: Product) -> None:
 
 def open_category(category: str) -> None:
     st.session_state["browse_category"] = category
+
+def set_search_query(query: str) -> None:
+    st.session_state["product_search"] = query
+    st.session_state["category_filter"] = "All categories"
+    st.session_state.pop("selected_product", None)
 
 def fill_example_links() -> None:
     st.session_state["amazon_link_a"] = "https://www.amazon.com/dp/B085DVHQ57"
@@ -166,6 +168,16 @@ def browse_card(product: Product, index: int) -> None:
         unsafe_allow_html=True,
     )
     st.button("Inspect reviews ↗", key=f"browse_{product.asin}", on_click=open_featured, args=(product,), use_container_width=True)
+
+def search_result_card(product: Product, index: int) -> None:
+    st.markdown(
+        f'<article class="rt-search-result tone-{index}"><div class="rt-search-result-image">{product_image(product)}</div>'
+        f'<div class="rt-search-result-copy"><span>{escape(product.category)}</span>'
+        f'<h3 title="{escape(product.title, quote=True)}">{escape(shorten(product.title, width=67, placeholder="…"))}</h3>'
+        f'<p><strong>★ {product.source_rating:.1f}</strong> listed rating <i>·</i> {product.source_rating_count:,} ratings</p></div></article>',
+        unsafe_allow_html=True,
+    )
+    st.button("Explore this product →", key=f"search_result_{product.asin}", on_click=open_featured, args=(product,), use_container_width=True)
 
 def category_card(category: str, product: Product, index: int) -> None:
     tones = ("mint", "sun", "rose", "blue", "lilac")
@@ -474,37 +486,140 @@ st.markdown('<div class="rt-workspace-intro"><div class="rt-eyebrow">YOUR RESEAR
 st.segmented_control("Workspace", ["Explore", "Compare"], key="view", selection_mode="single", required=True, label_visibility="collapsed")
 
 if st.session_state["view"] == "Explore":
-    section("Find your product", "05 / SEARCH", "Search by name or product ID")
-    search_col, category_col = st.columns([2.2, 1], gap="medium")
-    with search_col:
-        query = st.text_input("Product name or ASIN", placeholder="Try headphones, water bottle, or an ASIN", key="product_search")
-    with category_col:
-        categories = ["All categories"] + sorted({item.category for item in products})
-        category = st.selectbox("Category", categories, key="category_filter")
+    section("Find the product on your mind.", "05 / SEARCH", "Search the historical review catalog")
+    with st.container(key="search_zone"):
+        st.markdown(f'<div class="rt-search-intro"><span>DISCOVER / {len(products):,} PRODUCTS</span><h3>What are you considering?</h3><p>Search by product name or ASIN, then follow the evidence.</p></div>', unsafe_allow_html=True)
+        search_col, category_col = st.columns([2.2, 1], gap="medium")
+        with search_col:
+            query = st.text_input("Product name or ASIN", placeholder="Search water bottles, headphones, or a product ID", key="product_search")
+        with category_col:
+            categories = ["All categories"] + sorted({item.category for item in products})
+            category = st.selectbox("Category", categories, key="category_filter")
+        st.markdown('<div class="rt-search-quick-label">POPULAR STARTING POINTS</div>', unsafe_allow_html=True)
+        for column, term in zip(st.columns(3, gap="small"), ("water bottle", "headphones", "hair dryer")):
+            with column:
+                st.button(f"{term.title()} ↗", key=f"search_suggestion_{term}", on_click=set_search_query, args=(term,), use_container_width=True)
     matches = filter_products(products, query, category)
-    st.caption(f"{len(matches):,} products found" + (" · showing the first 60" if len(matches) > 60 else ""))
+    st.markdown(f'<div class="rt-search-count"><strong>{len(matches):,}</strong> matching products <span>↓ &nbsp; START WITH A MATCH</span></div>', unsafe_allow_html=True)
     if not matches:
-        st.warning("No products match. Try a shorter search or another category.")
+        st.markdown('<div class="rt-search-empty"><strong>No match in this review snapshot.</strong><p>Try a shorter product name or another category.</p></div>', unsafe_allow_html=True)
+        st.button("Clear search →", on_click=set_search_query, args=("",))
     else:
-        if st.session_state.get("selected_product") not in matches[:60]:
-            st.session_state.pop("selected_product", None)
-        chosen = st.selectbox("Choose a product to inspect", matches[:60], format_func=product_label, key="selected_product")
+        if not query and category == "All categories":
+            featured_matches = [products_by_asin[asin] for asin in ("B085DVHQ57", "B097CNMZF5", "B01N6ZJH96") if asin in products_by_asin]
+            featured_matches = [product for product in featured_matches if product in matches]
+        else:
+            featured_matches = matches[:3]
+        if not featured_matches:
+            featured_matches = matches[:3]
+        with st.container(key="search_results"):
+            for column, product, index in zip(st.columns(len(featured_matches), gap="medium"), featured_matches, range(len(featured_matches))):
+                with column:
+                    search_result_card(product, index)
+        options = matches[:60]
+        preferred = featured_matches[0]
+        if preferred not in options:
+            options = [preferred] + options[:59]
+        if st.session_state.get("selected_product") not in options:
+            st.session_state["selected_product"] = preferred
+        chosen = st.selectbox("Explore another matching product", options, index=None, format_func=product_label, key="selected_product")
         selected = snapshot(chosen.asin)
         if selected is not None:
-            section("The product at a glance", "06 / INSPECT", "Source facts and sampled evidence")
-            image_col, identity_col = st.columns([.85, 2.15], gap="large")
-            with image_col:
-                if selected.product.image_url and selected.product.image_url.startswith(("https://", "http://")):
-                    st.image(selected.product.image_url, width="stretch")
-            with identity_col:
-                st.markdown(f'<div class="rt-product-head"><div class="rt-eyebrow">{escape(selected.product.category)} &nbsp; / &nbsp; {escape(selected.product.asin)}</div><h2>{escape(selected.product.title)}</h2><p>Review sample: {escape(str(selected.first_review_date or "N/A"))} to {escape(str(selected.last_review_date or "N/A"))}</p></div>', unsafe_allow_html=True)
-                st.button("Compare this product →", on_click=compare_from_explore, args=(selected.product,), type="primary")
-            one, two, three = st.columns(3, gap="medium")
-            with one: stat("Product-page rating", f"{selected.product.source_rating:.1f} / 5", f"{selected.product.source_rating_count:,} ratings listed on product page")
-            with two: stat("Rating from sample", f"{selected.sample_rating:.2f} / 5" if selected.sample_rating is not None else "—", "Mean of cleaned reviews in this dataset")
-            with three: stat("Reviews in sample", f"{selected.sample_review_count:,}", "Historical review records available here")
-            
-            # B1: Product-level review reliability analysis
+
+            # Updated product inspection UI.
+            section(
+                "The story behind this product.",
+                "06 / INSPECT",
+                "A focused view of the source facts and review sample",
+            )
+
+            with st.container(key="product_stage"):
+                image_col, identity_col = st.columns(
+                    [.88, 1.12],
+                    gap="large",
+                    vertical_alignment="center",
+                )
+
+                with image_col:
+                    st.markdown(
+                        f'<div class="rt-inspect-visual">'
+                        f'<span>THE PRODUCT / {escape(selected.product.asin)}</span>'
+                        f'<div class="rt-inspect-product">'
+                        f'{product_image(selected.product)}'
+                        f'</div>'
+                        f'<b>✳ &nbsp; REVIEW EVIDENCE INSIDE</b>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+                with identity_col:
+                    positive_share = (
+                        rating_share(selected, (4, 5))
+                        if selected.sample_review_count
+                        else None
+                    )
+
+                    summary = (
+                        f"{positive_share}% of the cleaned review sample "
+                        "rated this product 4 or 5 stars."
+                        if positive_share is not None
+                        else "Review evidence is being collected for this product."
+                    )
+
+                    sample_mean = (
+                        f"{selected.sample_rating:.2f}"
+                        if selected.sample_rating is not None
+                        else "—"
+                    )
+
+                    st.markdown(
+                        f'<div class="rt-product-head">'
+                        f'<div class="rt-eyebrow">'
+                        f'{escape(selected.product.category)}'
+                        f' &nbsp; / &nbsp; PRODUCT {escape(selected.product.asin)}'
+                        f'</div>'
+                        f'<h2>{escape(selected.product.title)}</h2>'
+                        f'<p>{escape(summary)}</p>'
+                        f'<div class="rt-inspect-metrics">'
+                        f'<div><span>PRODUCT-PAGE RATING</span>'
+                        f'<strong>{selected.product.source_rating:.1f}'
+                        f'<small> / 5</small></strong>'
+                        f'<em>{selected.product.source_rating_count:,} listed ratings</em>'
+                        f'</div>'
+                        f'<div><span>SAMPLE MEAN</span>'
+                        f'<strong>{sample_mean}<small> / 5</small></strong>'
+                        f'<em>{selected.sample_review_count:,} cleaned reviews</em>'
+                        f'</div></div>'
+                        f'<div class="rt-inspect-period">'
+                        f'REVIEW WINDOW &nbsp; '
+                        f'{escape(str(selected.first_review_date or "N/A"))}'
+                        f' — '
+                        f'{escape(str(selected.last_review_date or "N/A"))}'
+                        f'</div></div>',
+                        unsafe_allow_html=True,
+                    )
+
+                    compare_action, amazon_action = st.columns(
+                        2, gap="small"
+                    )
+
+                    with compare_action:
+                        st.button(
+                            "Compare this product →",
+                            on_click=compare_from_explore,
+                            args=(selected.product,),
+                            type="primary",
+                            use_container_width=True,
+                        )
+
+                    with amazon_action:
+                        st.link_button(
+                            "View Amazon listing ↗",
+                            f"https://www.amazon.com/dp/{selected.product.asin}",
+                            use_container_width=True,
+                        )
+
+            # B1: Product-level review reliability analysis.
             reliability = reliability_results().get(selected.product.asin)
 
             if reliability is not None:
@@ -515,18 +630,22 @@ if st.session_state["view"] == "Explore":
                     unsafe_allow_html=True,
                 )
 
-                trust_one, trust_two, trust_three = st.columns(3, gap="medium")
+                trust_one, trust_two, trust_three = st.columns(
+                    3, gap="medium"
+                )
 
                 with trust_one:
                     stat(
                         "Trust-adjusted rating",
                         f"{reliability.adjusted_rating:.2f} / 5",
-                        f"Original B1 sample rating: {reliability.original_rating:.2f}",
+                        f"Original B1 sample rating: "
+                        f"{reliability.original_rating:.2f}",
                     )
 
                 with trust_two:
                     rating_delta = (
-                        reliability.adjusted_rating - reliability.original_rating
+                        reliability.adjusted_rating
+                        - reliability.original_rating
                     )
                     stat(
                         "Rating change",
@@ -543,10 +662,11 @@ if st.session_state["view"] == "Explore":
                     )
 
                 st.caption(
-                    "B1 uses review reliability signals to adjust the contribution "
-                    "of certain reviews. The adjusted rating is an experimental "
-                    "sample-based metric, not an official Amazon rating or a "
-                    "determination that a review is fraudulent."
+                    "B1 uses review reliability signals to adjust the "
+                    "contribution of certain reviews. The adjusted rating "
+                    "is an experimental sample-based metric, not an "
+                    "official Amazon rating or a determination that "
+                    "a review is fraudulent."
                 )
             else:
                 st.caption(
