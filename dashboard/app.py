@@ -389,12 +389,11 @@ hero_products.extend(product for product in products if product.image_url and pr
 hero_products = hero_products[:3]
 hero_visual = ''.join(f'<div class="rt-hero-product item-{index}">{product_image(product)}</div>' for index, product in enumerate(hero_products))
 st.markdown(
-    '<div class="rt-intro"><div class="rt-hero-copy"><div class="rt-eyebrow">REVIEWTRUST / PRODUCT INTELLIGENCE</div>'
+    '<div class="rt-intro"><div class="rt-hero-copy">'
     '<h1>Know more.<br><em>Choose better.</em></h1>'
-    '<p>Paste two Amazon product links. We turn the review sample into a clear, side-by-side decision.</p>'
-    '<div class="rt-hero-prompt">REAL REVIEWS &nbsp; · &nbsp; CLEAR CONTEXT &nbsp; · &nbsp; ONE BETTER DECISION</div></div>'
+    '<p>Compare Amazon products side by side using real customer reviews. See what buyers love, what they don’t, and which one fits you.</p></div>'
     f'<div class="rt-hero-art" aria-hidden="true"><div class="rt-hero-platform"></div>{hero_visual}'
-    '<div class="rt-art-sticker">A<br>VS<br>B</div></div></div>',
+    '<div class="rt-art-sticker"><span>A</span><b>vs</b><span>B</span></div></div></div>',
     unsafe_allow_html=True,
 )
 render_shopping_agent(products)

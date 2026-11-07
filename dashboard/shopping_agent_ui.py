@@ -140,7 +140,7 @@ def render_shopping_agent(products: list[Product]) -> None:
             '<div class="rt-agent-hero-note"><span class="rt-agent-online"></span>'
             'Ready when you are <span>·</span> 1–5 products</div></div>'
             f'<div class="rt-agent-mascot"><div class="rt-agent-halo"></div><img src="data:image/svg+xml;base64,{rabbit_data}" '
-            'alt="A friendly rabbit shopping guide wearing a headset"></div></div>',
+            'alt="A white rabbit in profile wearing a large support headset"></div></div>',
             unsafe_allow_html=True,
         )
         st.markdown(
