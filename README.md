@@ -21,8 +21,10 @@ The MVP uses PostgreSQL, Python analysis modules, and a Streamlit + Plotly dashb
 | A2 - Data pipeline | Data quality, incremental review loading, Airflow orchestration | **Integrated for the pinned snapshot** |
 | B1 - Trust analytics | Similarity, anomaly signals, weighted ratings | In progress on a feature branch |
 | B2 - NLP | Pros and cons extraction and evaluation | Planned |
-| C - Integration | Python data access and analysis-module integration | Planned |
-| D - Dashboard | Search, evidence, and comparison UI | Draft on a feature branch |
+| C - Integration | Python data access, PostgreSQL queries, and module integration | Planned |
+| D - Dashboard | Product search, trust views, pros and cons, and two-product comparison | In progress on this branch |
+
+The first D preview is now in progress on this branch. It includes live product search, factual review-sample views, and a two-product comparison; B1/B2 analysis panels remain pending. See [dashboard-handoff.md](docs/dashboard-handoff.md) for local setup and integration details.
 
 ## Data foundation and pipeline
 
@@ -59,3 +61,5 @@ docker compose -f compose.yaml -f compose.airflow.yaml up -d --build
 Open `http://localhost:8080` and manually trigger `reviewtrust_etl`. The DAG is intentionally unscheduled for the historical snapshot. Its five tasks verify source files, clean, validate, load, and monitor. The source and cleaned CSV files stay outside Git.
 
 Run regression checks with `.venv/bin/python -m unittest discover -s tests -v`.
+
+To preview the D dashboard on this branch, follow [dashboard-handoff.md](docs/dashboard-handoff.md).
