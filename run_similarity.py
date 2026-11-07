@@ -1,33 +1,72 @@
-from nlp.features import build_anomaly_features
-from nlp.reliability import compute_rule_anomaly_score
-from nlp.isolation_forest import compute_ml_anomaly_score
+import argparse
 from pathlib import Path
+
 import pandas as pd
 
+from nlp.features import build_anomaly_features
+from nlp.isolation_forest import compute_ml_anomaly_score
+from nlp.reliability import compute_rule_anomaly_score
 from nlp.similarity import compute_review_similarity
 
-
-DATA_PATH = Path("data/processed/reviews_2025_nlp.csv")
+DATA_PATH = Path("data/processed/reviews_b1_nlp.csv")
 OUTPUT_PATH = Path("data/processed/similarity_results.csv")
+
+parser = argparse.ArgumentParser(
+    description="Run review similarity and anomaly detection."
+)
+
+selection = parser.add_mutually_exclusive_group()
+
+selection.add_argument(
+    "--top-products",
+    type=int,
+    default=5,
+    help="Analyze the N products with the most reviews (default: 5).",
+)
+
+selection.add_argument(
+    "--all-products",
+    action="store_true",
+    help="Analyze all products.",
+)
+
+args = parser.parse_args()
+
+if args.top_products is not None and args.top_products < 1:
+    parser.error("--top-products must be at least 1")
 
 OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 # Load actual 2025 Amazon reviews
-df = pd.read_csv(DATA_PATH, low_memory=False)
+df = pd.read_csv(
+    DATA_PATH,
+    low_memory=False,
+    keep_default_na=False,
+)
 
 print(f"Total reviews: {len(df):,}")
 
 # Select complete products rather than arbitrary individual reviews.
 # This preserves within-product similarity comparisons.
-selected_asins = (
-    df.groupby("asin")
-    .size()
-    .sort_values(ascending=False)
-    .head(50)
-    .index
-)
+if args.all_products:
+    sample = df.copy()
+else:
+    selected_asins = (
+        df.groupby("asin")
+        .size()
+        .sort_values(ascending=False)
+        .head(args.top_products)
+        .index
+    )
 
-sample = df[df["asin"].isin(selected_asins)].copy()
+    sample = df[df["asin"].isin(selected_asins)].copy()
+
+# Verify that selected records have unique source identifiers.
+if sample["source_row_number"].isna().any():
+    raise ValueError("Missing source_row_number values")
+
+if not sample["source_row_number"].is_unique:
+    raise ValueError("Duplicate source_row_number values")
 
 print(f"Selected reviews: {len(sample):,}")
 print(f"Selected products: {sample['asin'].nunique():,}")
@@ -37,6 +76,21 @@ result = compute_review_similarity(
     sample,
     threshold=0.85,
 )
+
+if len(result) != len(sample):
+    raise AssertionError(
+        "Similarity detection changed the review count"
+    )
+
+if not result["source_row_number"].is_unique:
+    raise AssertionError(
+        "Similarity results contain duplicate source_row_number values"
+    )
+
+if set(result["source_row_number"]) != set(sample["source_row_number"]):
+    raise AssertionError(
+        "Similarity detection lost or changed source review identifiers"
+    )
 
 # Apply rule-based anomaly scoring
 result = compute_rule_anomaly_score(result)
@@ -63,7 +117,7 @@ print(
     result.loc[
         result["rule_anomaly_flag"],
         [
-            "id",
+            "source_row_number",
             "asin",
             "body",
             "max_text_similarity",
@@ -126,7 +180,7 @@ print("\nTop ML anomalies:")
 print(
     result[
         [
-            "id",
+            "source_row_number",
             "asin",
             "stars",
             "text_length",

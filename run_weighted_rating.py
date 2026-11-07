@@ -6,10 +6,9 @@ from pathlib import Path
 import pandas as pd
 
 from nlp.weighted_rating import (
-    compute_review_weights,
     compute_product_ratings,
+    compute_review_weights,
 )
-
 
 INPUT_PATH = Path("data/processed/similarity_results.csv")
 
