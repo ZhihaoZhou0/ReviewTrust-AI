@@ -1,8 +1,5 @@
 streamlit==1.67.0
 psycopg[binary]==3.3.8
-<<<<<<< HEAD
 sentence-transformers==6.2.0
 numpy>=1.26,<3
-=======
 anthropic>=0.49,<3
->>>>>>> origin/main
