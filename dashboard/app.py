@@ -15,6 +15,7 @@ from dashboard.analysis_access import (
     load_reliability_results,
     load_pros_cons_results,
 )
+from dashboard.shopping_agent_ui import render_shopping_agent
 
 st.set_page_config(page_title="ReviewTrust | Product evidence desk", page_icon="◒", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""
@@ -337,6 +338,31 @@ def compare_card(item: ProductSnapshot, number: str) -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def render_compare_summary(left_product: Product, right_product: Product) -> None:
+    """Render the selected comparison near the link form, including B2 themes."""
+    left_snapshot = snapshot(left_product.asin)
+    right_snapshot = snapshot(right_product.asin)
+    if not left_snapshot or not right_snapshot:
+        st.warning("Review evidence is unavailable for one of these products.")
+        return
+
+    section("Comparison results", "RESULT", "Ratings and B2 review themes in one view")
+    left_col, right_col = st.columns(2, gap="large")
+    for column, item, number in (
+        (left_col, left_snapshot, "01"),
+        (right_col, right_snapshot, "02"),
+    ):
+        with column:
+            compare_card(item, number)
+            render_pros_cons(item.product.asin)
+    st.markdown(
+        '<div class="rt-note">Sample ratings summarize only the cleaned reviews '
+        'available here. Pros and cons are recurring B2 themes backed by review excerpts.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
 
 try:
     products = catalog()
@@ -363,6 +389,7 @@ st.markdown(
     '<div class="rt-art-sticker">A<br>VS<br>B</div></div></div>',
     unsafe_allow_html=True,
 )
+render_shopping_agent()
 with st.container(key="hero_compare"):
     st.markdown('<div class="rt-hero-compare-label"><span>START A COMPARISON</span><strong>Two links. One clearer choice.</strong><p>Amazon product URLs are matched against the products in our review dataset.</p></div>', unsafe_allow_html=True)
     with st.form("amazon_compare_form", border=False):
@@ -388,7 +415,16 @@ with st.container(key="hero_compare"):
             st.session_state["compare_left_product"] = products_by_asin[asin_a]
             st.session_state["compare_right_product"] = products_by_asin[asin_b]
             st.session_state["view"] = "Compare"
-            st.success("Products found. Their review evidence is ready below.")
+            st.success("Products found. Their comparison is shown here.")
+    quick_left = st.session_state.get("compare_left_product")
+    quick_right = st.session_state.get("compare_right_product")
+    if (
+        st.session_state.get("view") == "Compare"
+        and quick_left in products
+        and quick_right in products
+        and quick_left.asin != quick_right.asin
+    ):
+        render_compare_summary(quick_left, quick_right)
 st.markdown('<div class="rt-value-strip"><span>✳ &nbsp; REAL REVIEW EVIDENCE</span><span>◇ &nbsp; CLEAR SAMPLE CONTEXT</span><span>↗ &nbsp; SIDE-BY-SIDE COMPARISON</span></div>', unsafe_allow_html=True)
 
 section("Explore by category", "01 / CATEGORIES", "Browse products from the source catalog")
@@ -807,17 +843,7 @@ else:
     if left_product.asin == right_product.asin:
         st.warning("Choose a different second product to compare.")
     else:
-        left_snapshot, right_snapshot = snapshot(left_product.asin), snapshot(right_product.asin)
-        if left_snapshot and right_snapshot:
-            with left_col: compare_card(left_snapshot, "01")
-            with right_col: compare_card(right_snapshot, "02")
-            st.markdown('<div class="rt-note">Sample ratings summarize only the cleaned reviews available here. A higher sample mean does not establish that one product is more trustworthy.</div>', unsafe_allow_html=True)
-            section("Rating patterns", "06 / EVIDENCE", "Review counts by star rating in each sample")
-            chart_left, chart_right = st.columns(2, gap="medium")
-            with chart_left:
-                st.markdown(rating_distribution(left_snapshot), unsafe_allow_html=True)
-            with chart_right:
-                st.markdown(rating_distribution(right_snapshot), unsafe_allow_html=True)
+        st.info("The comparison result, including review pros and cons, is shown directly below the link form at the top of the page.")
 
 st.markdown(
     '<div class="rt-future">'
