@@ -389,7 +389,7 @@ st.markdown(
     '<div class="rt-art-sticker">A<br>VS<br>B</div></div></div>',
     unsafe_allow_html=True,
 )
-render_shopping_agent()
+render_shopping_agent(products)
 with st.container(key="hero_compare"):
     st.markdown('<div class="rt-hero-compare-label"><span>START A COMPARISON</span><strong>Two links. One clearer choice.</strong><p>Amazon product URLs are matched against the products in our review dataset.</p></div>', unsafe_allow_html=True)
     with st.form("amazon_compare_form", border=False):
