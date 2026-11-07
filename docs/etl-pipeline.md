@@ -11,7 +11,7 @@ The pipeline supports:
 - Verification of locally available CSV files against A1's pinned SHA-256 digests
 - Data cleaning and schema standardization
 - Batch-level data quality validation
-- Incremental loading with duplicate prevention
+- Incremental loading with source-position rerun protection
 - PostgreSQL batch checkpoints and failure recovery
 - Airflow orchestration, task retries, and monitoring
 
@@ -56,13 +56,12 @@ Dataset revision:
 |---|---:|
 | Raw products | 2,727 |
 | Raw reviews | 255,966 |
-| Exact duplicate reviews removed | 3,832 |
-| Cleaned reviews | 252,134 |
+| Additional rows with exactly repeated content | 3,832 retained |
+| Cleaned reviews | 255,966 |
 | Default batch size | 10,000 |
 | Total review batches | 26 |
 
-Only exact duplicate source rows are removed during cleaning.
-Reviews sharing an ID but containing different data are retained.
+Every valid review row is retained during cleaning, including identical rows and reviews sharing a source ID. Repeated content is available for analysis, but is not itself a fraud verdict.
 
 ## 4. Key Components
 
@@ -90,7 +89,8 @@ The validation module checks:
 - Valid review dates
 - Nonnegative helpful-vote counts
 - Verified-purchase field values
-- Duplicate source hashes within and across batches
+- Unique source row positions within and across batches
+- Repeated-content counts matching the A1 audit
 - Positive source row numbers
 - Exact product and cleaned-review counts for the audited snapshot
 
@@ -117,7 +117,7 @@ batch ID has already been completed.
 - Completed batches are skipped.
 - Unprocessed or failed batches are eligible for loading.
 - New reviews are inserted through a temporary staging table.
-- The unique `source_row_hash` prevents duplicate review inserts.
+- Unique source row positions prevent a rerun from inserting the same CSV record twice; `source_row_hash` is non-unique.
 
 The default batch size is configurable through the CLI.
 
@@ -212,21 +212,20 @@ The A1 snapshot importer verifies source checksums and initializes the applicati
 
 ### Snapshot Idempotency
 
-The full snapshot importer was executed twice.
-
-The second run inserted zero additional products and reviews.
+The revised snapshot importer migrated a database created by the original A1 pipeline, adding the 3,832 repeated-content source rows that had previously been dropped. A second run inserted zero additional products and reviews.
 
 Final counts:
 
 - Products: 2,727
-- Reviews: 252,134
+- Reviews: 255,966
 
 ### Batch Validation
 
 All 26 batches passed validation.
 
 - Failed batches: 0
-- Cross-batch duplicate hashes: 0
+- Cross-batch duplicate source positions: 0
+- Additional repeated-content review rows retained: 3,832
 
 ### Incremental Loading
 
@@ -239,7 +238,7 @@ A second run skipped previously completed batches.
 
 A separate test database was used to verify real inserts.
 
-The first two batches each inserted 10,000 reviews.
+The first batch inserted 10,000 reviews, including 213 rows whose content hash repeats within that batch. Re-running it skipped the completed checkpoint.
 
 ### Failure Recovery Test
 
@@ -260,7 +259,7 @@ After removing the constraint and rerunning the loader:
 The main Airflow DAG completed successfully.
 
 - Successful tasks: 5/5
-- Development database reviews: 252,134
+- Development database reviews: 255,966
 - Completed batch checkpoints: 26
 - Unresolved failed batches: 0
 
