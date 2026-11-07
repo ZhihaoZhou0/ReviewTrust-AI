@@ -1,334 +1,187 @@
-"""ReviewTrust AI's first dashboard milestone: real catalog, honest placeholders."""
-
+"""ReviewTrust's product evidence desk: real sample data, clearly labeled."""
 from __future__ import annotations
 
 import sys
 from html import escape
 from pathlib import Path
-
-# Streamlit executes this file from its own script directory.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import psycopg
 import plotly.graph_objects as go
+import psycopg
 import streamlit as st
-
-from dashboard.data_access import (
-    ProductSnapshot,
-    ReviewExcerpt,
-    load_catalog,
-    load_product_snapshot,
-    load_recent_reviews,
-)
+from dashboard.data_access import Product, ProductSnapshot, ReviewExcerpt, load_catalog, load_product_snapshot, load_recent_reviews
 from dashboard.view_model import filter_products, product_label
 
-
-st.set_page_config(
-    page_title="ReviewTrust AI | Product review clarity",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
-
-st.markdown(
-    """
-    <style>
-      .block-container { max-width: 1220px; padding-top: 2rem; padding-bottom: 4rem; }
-      .rt-hero {
-        padding: 2.15rem 2.4rem;
-        border-radius: 22px;
-        background: linear-gradient(115deg, #123F3A 0%, #1C665C 62%, #268475 100%);
-        color: #FFFFFF;
-        margin-bottom: 1.6rem;
-      }
-      .rt-hero h1 { color: #FFFFFF; font-size: 2.5rem; line-height: 1.08; margin: .45rem 0; }
-      .rt-hero p { color: #E1F3ED; margin: 0; max-width: 680px; }
-      .rt-kicker { font-size: .76rem; font-weight: 700; letter-spacing: .17em; }
-      .rt-product-title {
-        color: #17312F;
-        font-size: 1.65rem;
-        font-weight: 700;
-        line-height: 1.28;
-        margin: .15rem 0 1rem;
-      }
-      .rt-compare-title {
-        color: #17312F;
-        font-size: 1.2rem;
-        font-weight: 700;
-        line-height: 1.35;
-        min-height: 4.85rem;
-        margin: .3rem 0 1rem;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-        overflow: hidden;
-      }
-      div[data-testid="stMetric"] {
-        background: #FFFFFF;
-        border: 1px solid #DCE8E3;
-        border-radius: 14px;
-        padding: .8rem 1rem;
-      }
-      div[data-testid="stMetricLabel"] { color: #49655F; }
-    </style>
-    <div class="rt-hero">
-      <div class="rt-kicker">REVIEWTRUST AI / PRODUCT INTELLIGENCE</div>
-      <h1>Look beyond five stars.</h1>
-      <p>Explore what the available review sample actually says, then compare products with a clearer view of the evidence.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
+st.set_page_config(page_title="ReviewTrust | Product evidence desk", page_icon="◒", layout="wide", initial_sidebar_state="collapsed")
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap');
+:root { --paper:#F5F3EC; --ink:#202620; --muted:#657067; --line:#DADDD0; --lime:#D6EA8D; }
+html,body,[class*="css"],[data-testid="stApp"] { font-family:'DM Sans',sans-serif; }
+[data-testid="stApp"] { background:var(--paper); color:var(--ink); }
+.block-container { max-width:1240px; padding-top:1.45rem; padding-bottom:5rem; }
+header[data-testid="stHeader"] { background:transparent; }
+.rt-topline { display:flex; justify-content:space-between; align-items:center; padding:0 0 1rem; border-bottom:1px solid var(--ink); gap:1rem; }
+.rt-wordmark { font-size:1.05rem; font-weight:700; letter-spacing:-.055em; color:var(--ink); }
+.rt-symbol { display:inline-block; background:var(--ink); color:var(--lime); border-radius:50%; width:1.45rem; height:1.45rem; text-align:center; line-height:1.35rem; margin-right:.5rem; }
+.rt-topnote,.rt-eyebrow,.rt-section-label,.rt-micro { font-family:'DM Mono',monospace; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+.rt-intro { padding:1.7rem 0 1.1rem; max-width:900px; }
+.rt-intro h1 { font-family:'Instrument Serif',Georgia,serif; font-weight:400; letter-spacing:-.035em; line-height:.98; font-size:clamp(3.2rem,5vw,4.8rem); margin:.35rem 0 .8rem; color:var(--ink); }
+.rt-intro h1 em { color:#708B39; font-weight:400; }
+.rt-intro p { color:#526057; font-size:1.06rem; line-height:1.55; max-width:650px; margin:0; }
+.rt-section-head { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin:2rem 0 1rem; border-top:1px solid var(--ink); padding-top:.9rem; }
+.rt-section-head h2 { font-family:'Instrument Serif',Georgia,serif; font-weight:400; letter-spacing:-.025em; font-size:2.15rem; margin:.2rem 0 0; color:var(--ink); }
+.rt-section-head p { color:var(--muted); font-size:.84rem; margin:0; }
+.rt-product-head { padding:1.1rem 0 1.4rem; }
+.rt-product-head h2 { font-family:'Instrument Serif',Georgia,serif; font-size:clamp(2rem,3.7vw,3.5rem); font-weight:400; letter-spacing:-.03em; line-height:1.08; margin:.5rem 0 .75rem; color:var(--ink); }
+.rt-product-head p { color:var(--muted); font-size:.84rem; margin:0; }
+.rt-stat { border-top:1px solid var(--ink); padding:.65rem 0 1rem; min-height:7.7rem; }
+.rt-stat .label { font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-size:.65rem; }
+.rt-stat .value { font-family:'Instrument Serif',Georgia,serif; font-size:2.65rem; line-height:1.15; color:var(--ink); margin:.55rem 0 .1rem; }
+.rt-stat .detail { color:var(--muted); font-size:.74rem; }
+.rt-note { border-left:3px solid #8EAD4F; background:#EBEDE3; padding:.75rem 1rem; color:#4C5B48; font-size:.82rem; line-height:1.45; margin:.75rem 0 1.3rem; }
+.rt-review { border-top:1px solid var(--line); padding:1rem 0 1.15rem; }
+.rt-review .rating { color:#668135; font-family:'DM Mono',monospace; font-size:.72rem; }
+.rt-review h3 { font-size:1rem; line-height:1.3; font-weight:600; margin:.4rem 0; color:var(--ink); }
+.rt-review p { font-size:.9rem; line-height:1.55; margin:0 0 .55rem; color:#49534B; }
+.rt-review .meta { color:var(--muted); font-family:'DM Mono',monospace; font-size:.65rem; }
+.rt-compare-card { border-top:1px solid var(--ink); padding:1rem 0 .2rem; }
+.rt-compare-card .number { display:inline-block; background:var(--lime); padding:.2rem .45rem; font-family:'DM Mono',monospace; font-size:.66rem; }
+.rt-compare-card h3 { font-family:'Instrument Serif',Georgia,serif; font-size:1.7rem; font-weight:400; line-height:1.12; min-height:5.8rem; margin:.8rem 0; color:var(--ink); }
+.rt-compare-card .meta { color:var(--muted); font-size:.75rem; }
+.rt-compare-row { display:flex; justify-content:space-between; align-items:baseline; border-top:1px solid var(--line); padding:.65rem 0; gap:1rem; }
+.rt-compare-row span { color:var(--muted); font-size:.75rem; }
+.rt-compare-row strong { color:var(--ink); font-size:1.1rem; font-weight:600; }
+.rt-future { border-top:1px solid var(--ink); margin-top:2rem; padding:1rem 0; display:flex; justify-content:space-between; gap:2rem; }
+.rt-future strong { font-size:.9rem; }.rt-future p { color:var(--muted); font-size:.8rem; margin:.3rem 0 0; max-width:590px; }
+.rt-future span { font-family:'DM Mono',monospace; font-size:.67rem; color:#6A7D46; white-space:nowrap; }
+.rt-footer { border-top:1px solid var(--line); margin-top:2.2rem; padding-top:.8rem; color:var(--muted); font-family:'DM Mono',monospace; text-transform:uppercase; font-size:.63rem; letter-spacing:.04em; }
+div[data-testid="stSelectbox"] label,div[data-testid="stTextInput"] label { font-size:.78rem; font-weight:600; }
+div[data-baseweb="select"] > div,div[data-testid="stTextInput"] input { background:#FFFEF9; border-color:#BFC6B8; border-radius:3px; }
+div[data-testid="stSegmentedControl"] button,div[data-testid="stButton"] button { border-radius:2px; font-weight:600; }
+[data-testid="stImage"] img { object-fit:contain; background:#F0F0E8; border:1px solid var(--line); border-radius:3px; max-height:260px; }
+@media (max-width:700px) { .block-container { padding-top:.7rem; } .rt-topnote { display:none; } .rt-intro { padding:1.8rem 0 1rem; } .rt-section-head { display:block; } .rt-section-head p { margin-top:.5rem; } .rt-future { display:block; } .rt-future span { display:block; margin-top:.65rem; } }
+</style>
+<div class="rt-topline"><div class="rt-wordmark"><span class="rt-symbol">◒</span> ReviewTrust<span style="color:#7D973F">.</span></div><div class="rt-topnote">The review evidence desk &nbsp; / &nbsp; Hackathon preview</div></div>
+<div class="rt-intro"><div class="rt-eyebrow">A clearer way to read product reviews</div><h1>Look closer.<br><em>Choose better.</em></h1><p>Explore what a real review sample says about a product, then place two products side by side. Every number here tells you where it came from.</p></div>
+""", unsafe_allow_html=True)
 
 @st.cache_data(ttl=120, show_spinner=False)
-def catalog():
+def catalog() -> list[Product]:
     return load_catalog()
 
-
 @st.cache_data(ttl=120, show_spinner=False)
-def snapshot(asin: str):
+def snapshot(asin: str) -> ProductSnapshot | None:
     return load_product_snapshot(asin)
 
-
 @st.cache_data(ttl=120, show_spinner=False)
-def recent_reviews(asin: str):
+def recent_reviews(asin: str) -> list[ReviewExcerpt]:
     return load_recent_reviews(asin)
 
+def section(title: str, number: str, note: str = "") -> None:
+    st.markdown(f'<div class="rt-section-head"><div><div class="rt-section-label">{escape(number)}</div><h2>{escape(title)}</h2></div><p>{escape(note)}</p></div>', unsafe_allow_html=True)
 
-def distribution_chart(
-    left: ProductSnapshot, right: ProductSnapshot | None = None
-) -> go.Figure:
-    labels = ["1 star", "2 stars", "3 stars", "4 stars", "5 stars"]
+def star_chart(left: ProductSnapshot, right: ProductSnapshot | None = None) -> go.Figure:
     figure = go.Figure()
-    figure.add_bar(
-        x=labels,
-        y=left.star_counts,
-        name=left.product.title[:35],
-        marker_color="#168477",
-        hovertemplate="%{x}: %{y} sampled reviews<extra></extra>",
-    )
-    if right is not None:
-        figure.add_bar(
-            x=labels,
-            y=right.star_counts,
-            name=right.product.title[:35],
-            marker_color="#E6A04B",
-            hovertemplate="%{x}: %{y} sampled reviews<extra></extra>",
-        )
-    figure.update_layout(
-        barmode="group",
-        margin=dict(l=8, r=8, t=14, b=12),
-        height=300,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#244943"),
-        xaxis=dict(title=None, showgrid=False),
-        yaxis=dict(title="Reviews in sample", gridcolor="#E2ECE8"),
-        legend=dict(orientation="h", y=1.14),
-    )
+    for item, color, label in ((left, "#788E45", "Product 01" if right else "Sample reviews"), (right, "#27392F", "Product 02")):
+        if item is None:
+            continue
+        figure.add_bar(x=["1 star", "2 stars", "3 stars", "4 stars", "5 stars"], y=item.star_counts, name=label, marker_color=color, hovertemplate="%{x}: %{y} reviews in sample<extra></extra>")
+    figure.update_layout(barmode="group", height=290, margin=dict(l=0,r=0,t=18,b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(family="DM Sans",color="#526057",size=12), xaxis=dict(title=None,showgrid=False,linecolor="#BFC6B8"), yaxis=dict(title=None,gridcolor="#DFE2D8",zeroline=False), legend=dict(orientation="h",y=1.18,x=0), bargap=.25)
     return figure
 
+def stat(label: str, value: str, detail: str) -> None:
+    st.markdown(f'<div class="rt-stat"><div class="label">{escape(label)}</div><div class="value">{escape(value)}</div><div class="detail">{escape(detail)}</div></div>', unsafe_allow_html=True)
 
-def metric_value(value: float | None) -> str:
-    return f"{value:.2f} / 5" if value is not None else "No reviews"
-
-
-def show_snapshot_metrics(item: ProductSnapshot) -> None:
-    first, second, third = st.columns(3)
-    first.metric("Product-page rating", f"{item.product.source_rating:.1f} / 5")
-    second.metric("Sample rating", metric_value(item.sample_rating))
-    third.metric("Reviews in sample", f"{item.sample_review_count:,}")
-    st.caption(
-        f"Product page lists {item.product.source_rating_count:,} ratings. "
-        "The sample rating uses only cleaned reviews in this dataset."
-    )
-
+def compare_from_explore(product: Product) -> None:
+    st.session_state["compare_left_product"] = product
+    st.session_state["view"] = "Compare"
 
 def show_review(review: ReviewExcerpt) -> None:
-    heading = review.title or "Untitled review"
-    with st.expander(f"{review.stars}/5 stars | {heading[:90]} | {review.review_date}"):
-        excerpt = review.body.strip()
-        st.write(excerpt[:700] + ("..." if len(excerpt) > 700 else ""))
-        st.caption(f"Source review ID: {review.source_review_id}")
+    body = review.body.strip()
+    if len(body) > 440:
+        body = body[:437].rsplit(" ", 1)[0] + "..."
+    st.markdown(f'<article class="rt-review"><div class="rating">{"★" * review.stars} &nbsp; {review.stars} / 5 STARS</div><h3>{escape(review.title or "Untitled review")}</h3><p>{escape(body)}</p><div class="meta">{escape(str(review.review_date))} &nbsp; / &nbsp; Source ID {escape(review.source_review_id)}</div></article>', unsafe_allow_html=True)
 
+def compare_card(item: ProductSnapshot, number: str) -> None:
+    product = item.product
+    st.markdown(f'<div class="rt-compare-card"><span class="number">PRODUCT {number}</span><h3>{escape(product.title)}</h3><div class="meta">{escape(product.category)} &nbsp; / &nbsp; {escape(product.asin)}</div>', unsafe_allow_html=True)
+    for label, value in (("Product-page rating", f"{product.source_rating:.1f} / 5"), ("Rating from sample", f"{item.sample_rating:.2f} / 5" if item.sample_rating is not None else "No reviews"), ("Reviews in sample", f"{item.sample_review_count:,}"), ("Product-page rating count", f"{product.source_rating_count:,}")):
+        st.markdown(f'<div class="rt-compare-row"><span>{escape(label)}</span><strong>{escape(value)}</strong></div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 try:
     products = catalog()
 except (psycopg.Error, OSError, ValueError):
-    st.error(
-        "The product database is unavailable. Start PostgreSQL with "
-        "'docker compose up -d --wait db' and run "
-        "'python3 pipeline/load_snapshot.py' from the project root."
-    )
+    st.error("The product database is unavailable. Start PostgreSQL with 'docker compose up -d --wait db' and run 'python3 pipeline/load_snapshot.py' from the project root.")
     st.stop()
+if not products:
+    st.warning("The catalog is empty. Load the A1 snapshot to explore products.")
+    st.stop()
+if "view" not in st.session_state:
+    st.session_state["view"] = "Explore"
+st.segmented_control("Workspace", ["Explore", "Compare"], key="view", selection_mode="single", required=True, label_visibility="collapsed")
 
-with st.sidebar:
-    st.subheader("About this preview")
-    st.write(
-        "This first dashboard milestone uses real A1 data. Trust signals and "
-        "Pros & Cons will appear when the B/C analysis modules are connected."
-    )
-    st.caption("Source: DataHive Amazon Reviews sample")
-    st.caption("Review dates: July 1999 to July 2025")
-
-explore_tab, compare_tab = st.tabs(["Explore products", "Compare two products"])
-
-with explore_tab:
-    st.subheader("Find a product")
-    search_column, category_column = st.columns([2.2, 1])
-    with search_column:
-        query = st.text_input(
-            "Search by product name or ASIN",
-            placeholder="Try water bottle, headphones, or an ASIN",
-            key="product_search",
-        )
-    categories = ["All categories"] + sorted(
-        {product.category for product in products}
-    )
-    with category_column:
-        category = st.selectbox(
-            "Category", categories, key="category_filter"
-        )
+if st.session_state["view"] == "Explore":
+    section("Find your product", "01 / SEARCH", "Search by name or product ID")
+    search_col, category_col = st.columns([2.2, 1], gap="medium")
+    with search_col:
+        query = st.text_input("Product name or ASIN", placeholder="Try headphones, water bottle, or an ASIN", key="product_search")
+    with category_col:
+        categories = ["All categories"] + sorted({item.category for item in products})
+        category = st.selectbox("Category", categories, key="category_filter")
     matches = filter_products(products, query, category)
-    st.caption(
-        f"{len(matches):,} matching products"
-        + (f" | Showing the first 60" if len(matches) > 60 else "")
-    )
+    st.caption(f"{len(matches):,} products found" + (" · showing the first 60" if len(matches) > 60 else ""))
     if not matches:
-        st.info("No products match these filters. Try a broader search.")
+        st.warning("No products match. Try a shorter search or another category.")
     else:
-        chosen = st.selectbox(
-            "Select a product",
-            matches[:60],
-            format_func=product_label,
-            key="selected_product",
-        )
+        chosen = st.selectbox("Choose a product to inspect", matches[:60], format_func=product_label, key="selected_product")
         selected = snapshot(chosen.asin)
         if selected is not None:
-            st.divider()
-            st.caption(f"{selected.product.category}  /  ASIN {selected.product.asin}")
-            st.markdown(
-                f'<h2 class="rt-product-title">{escape(selected.product.title)}</h2>',
-                unsafe_allow_html=True,
-            )
-            show_snapshot_metrics(selected)
-            if selected.first_review_date and selected.last_review_date:
-                st.caption(
-                    f"Sample review dates: {selected.first_review_date} to "
-                    f"{selected.last_review_date}"
-                )
-
-            chart_column, status_column = st.columns([1.35, 1])
-            with chart_column:
-                st.markdown("#### Rating distribution")
-                st.plotly_chart(
-                    distribution_chart(selected),
-                    width="stretch",
-                    config={"displayModeBar": False},
-                )
-            with status_column:
-                with st.container(border=True):
-                    st.markdown("#### Review trust")
-                    st.info(
-                        "Analysis pending. B1 will add similarity and timing "
-                        "signals, plus an explainable weighted rating."
-                    )
-                    st.caption("A signal is not proof that a review is fake.")
-                with st.container(border=True):
-                    st.markdown("#### Pros & Cons")
-                    st.info(
-                        "Analysis pending. B2 will add recurring themes and "
-                        "support each theme with review evidence."
-                    )
-
-            st.markdown("#### Recent source reviews")
-            st.caption("Original excerpts from the sample, not extracted pros or cons.")
-            excerpts = recent_reviews(selected.product.asin)
-            if excerpts:
-                for review in excerpts:
-                    show_review(review)
-            else:
-                st.caption("No review text is available for this product.")
-
-with compare_tab:
-    st.subheader("Compare two products")
-    st.caption(
-        "Compare factual source and sample metrics now. Trust signals and "
-        "Pros & Cons will be added when analysis is ready."
-    )
-    if len(products) < 2:
-        st.info("At least two products are needed for comparison.")
+            section("Product dossier", "02 / INSPECT", "Source facts and sampled evidence")
+            image_col, identity_col = st.columns([.85, 2.15], gap="large")
+            with image_col:
+                if selected.product.image_url and selected.product.image_url.startswith(("https://", "http://")):
+                    st.image(selected.product.image_url, width="stretch")
+            with identity_col:
+                st.markdown(f'<div class="rt-product-head"><div class="rt-eyebrow">{escape(selected.product.category)} &nbsp; / &nbsp; {escape(selected.product.asin)}</div><h2>{escape(selected.product.title)}</h2><p>Review sample: {escape(str(selected.first_review_date or "N/A"))} to {escape(str(selected.last_review_date or "N/A"))}</p></div>', unsafe_allow_html=True)
+                st.button("Compare this product →", on_click=compare_from_explore, args=(selected.product,), type="primary")
+            one, two, three = st.columns(3, gap="medium")
+            with one: stat("Product-page rating", f"{selected.product.source_rating:.1f} / 5", f"{selected.product.source_rating_count:,} ratings listed on product page")
+            with two: stat("Rating from sample", f"{selected.sample_rating:.2f} / 5" if selected.sample_rating is not None else "—", "Mean of cleaned reviews in this dataset")
+            with three: stat("Reviews in sample", f"{selected.sample_review_count:,}", "Historical review records available here")
+            st.markdown('<div class="rt-note">These ratings come from different populations. The product-page rating reflects its listed rating count; the sample mean uses only cleaned reviews available in this dataset.</div>', unsafe_allow_html=True)
+            section("Read the evidence", "03 / EVIDENCE", "Distribution and original review excerpts")
+            chart_col, review_col = st.columns([1.1, 1], gap="large")
+            with chart_col:
+                st.markdown('<div class="rt-micro">Ratings in this sample</div>', unsafe_allow_html=True)
+                st.plotly_chart(star_chart(selected), width="stretch", config={"displayModeBar": False})
+                st.caption("Counts reflect the cleaned dataset sample, not all product-page ratings.")
+            with review_col:
+                st.markdown('<div class="rt-micro">Recent source reviews</div>', unsafe_allow_html=True)
+                excerpts = recent_reviews(selected.product.asin)
+                if excerpts:
+                    for review in excerpts: show_review(review)
+                else:
+                    st.caption("No review text is available for this product.")
+else:
+    section("Compare two products", "01 / COMPARE", "One clear view of the same evidence")
+    st.caption("Choose two distinct products. Ratings and counts below retain their original source labels.")
+    left_col, right_col = st.columns(2, gap="large")
+    with left_col:
+        left_product = st.selectbox("Product 01", products, index=0, format_func=product_label, key="compare_left_product")
+    right_index = next((i for i, item in enumerate(products) if item.asin != left_product.asin and item.category == left_product.category), next((i for i, item in enumerate(products) if item.asin != left_product.asin), 0))
+    with right_col:
+        right_product = st.selectbox("Product 02", products, index=right_index, format_func=product_label, key="compare_right_product")
+    if left_product.asin == right_product.asin:
+        st.warning("Choose a different second product to compare.")
     else:
-        comparable_index = next(
-            (
-                index
-                for index, product in enumerate(products[1:], 1)
-                if product.category == products[0].category
-            ),
-            1,
-        )
-        left_column, right_column = st.columns(2)
-        with left_column:
-            left_product = st.selectbox(
-                "First product",
-                products,
-                index=0,
-                format_func=product_label,
-                key="compare_left",
-            )
-        with right_column:
-            right_product = st.selectbox(
-                "Second product",
-                products,
-                index=comparable_index,
-                format_func=product_label,
-                key="compare_right",
-            )
-        if left_product.asin == right_product.asin:
-            st.warning("Choose two different products to compare.")
-        else:
-            left_snapshot = snapshot(left_product.asin)
-            right_snapshot = snapshot(right_product.asin)
-            if left_snapshot and right_snapshot:
-                for column, item in zip(
-                    (left_column, right_column),
-                    (left_snapshot, right_snapshot),
-                ):
-                    with column:
-                        with st.container(border=True):
-                            st.caption(f"{item.product.category} / {item.product.asin}")
-                            st.markdown(
-                                f'<h3 class="rt-compare-title" '
-                                f'title="{escape(item.product.title, quote=True)}">'
-                                f'{escape(item.product.title)}</h3>',
-                                unsafe_allow_html=True,
-                            )
-                            st.metric(
-                                "Product-page rating",
-                                f"{item.product.source_rating:.1f} / 5",
-                            )
-                            st.metric("Sample rating", metric_value(item.sample_rating))
-                            st.metric(
-                                "Reviews in sample",
-                                f"{item.sample_review_count:,}",
-                            )
-                            st.caption(
-                                f"Product page lists "
-                                f"{item.product.source_rating_count:,} ratings."
-                            )
-                st.markdown("#### Sample rating distributions")
-                st.plotly_chart(
-                    distribution_chart(left_snapshot, right_snapshot),
-                    width="stretch",
-                    config={"displayModeBar": False},
-                )
-                st.info(
-                    "Weighted ratings and review themes are not available yet. "
-                    "The chart above uses only cleaned sample reviews."
-                )
+        left_snapshot, right_snapshot = snapshot(left_product.asin), snapshot(right_product.asin)
+        if left_snapshot and right_snapshot:
+            with left_col: compare_card(left_snapshot, "01")
+            with right_col: compare_card(right_snapshot, "02")
+            st.markdown('<div class="rt-note">Sample ratings summarize only the cleaned reviews available here. A higher sample mean does not establish that one product is more trustworthy.</div>', unsafe_allow_html=True)
+            section("Rating patterns", "02 / EVIDENCE", "Review counts by star rating")
+            st.plotly_chart(star_chart(left_snapshot, right_snapshot), width="stretch", config={"displayModeBar": False})
 
-st.divider()
-st.caption(
-    "DataHive Amazon Reviews sample | Historical review data, not live "
-    "Amazon ratings | Review signals are not confirmed fraud labels."
-)
+st.markdown('<div class="rt-future"><div><strong>Trust signals and recurring themes</strong><p>Deeper review analysis is being developed. When available, this desk will show weighted ratings, unusual patterns, and evidence-backed pros and cons.</p></div><span>COMING IN A LATER RELEASE ↗</span></div><div class="rt-footer">DataHive Amazon Reviews sample &nbsp; / &nbsp; Historical data, not live Amazon ratings &nbsp; / &nbsp; Review patterns are not fraud verdicts</div>', unsafe_allow_html=True)

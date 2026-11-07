@@ -1,6 +1,6 @@
 # Dashboard Milestone 1 and Team Handoff
 
-The Streamlit preview is implemented on the D feature branch. It reads the completed A1 PostgreSQL database and deliberately leaves B1/B2 analysis unfilled.
+The Streamlit evidence desk is implemented on the D feature branch. It reads the completed A1 PostgreSQL database and keeps unfinished trust and theme analysis in a clearly labeled future state. The interface uses a warm editorial palette, restrained typography, and a search-to-evidence-to-compare flow.
 
 ## Run locally
 
@@ -19,9 +19,9 @@ The dashboard opens at http://localhost:8501. It expects the A1 local database a
 1. Search by product name or ASIN, optionally filter by category, and choose a result.
 2. Inspect the product-page rating, the mean of cleaned sampled reviews, sample size, review date range, and a Plotly rating distribution.
 3. Read a small set of original review excerpts with their source IDs.
-4. Choose two products and compare the same factual metrics side by side.
+4. Use "Compare this product" or the Compare navigation to place two products side by side, then inspect their factual metrics and rating distributions.
 
-The "Review trust" and "Pros & Cons" panels are explicit pending states. The app does not invent weighted ratings, fraud labels, or extracted themes.
+A small future-analysis note replaces large empty panels. The app does not invent weighted ratings, fraud labels, or extracted themes. Product-page ratings and sample means are labeled separately throughout.
 
 ## Integration boundary for B1, B2, and C
 
@@ -35,4 +35,4 @@ The product-page rating and sampled-review mean must remain separate. The datase
 
 ## Validation
 
-The adapter queried all 2,727 products from the local database; a product snapshot's star-count sum matched its sample count. Streamlit AppTest rendered both tabs and verified search, empty results, and same-product comparison feedback. The live page was also checked in a browser after fixing the entrypoint import path.
+The adapter queried all 2,727 products from the local database; a product snapshot's star-count sum matched its sample count. Streamlit AppTest rendered both views and verified search, empty results, side-by-side comparison, same-product feedback, and the product-to-compare action. The redesigned page was also inspected with real PostgreSQL data in Chrome.
