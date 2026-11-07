@@ -233,3 +233,6 @@ data/processed/
 # Generated ML models
 models/*.joblib
 models/*.pkl
+
+# OS-generated files
+.DS_Store

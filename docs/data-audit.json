@@ -1,0 +1,392 @@
+{
+  "source": {
+    "repository": "datahiveai/Amazon-Reviews-Dataset",
+    "revision": "2531d9083bd3aab11261eab7e69d0d0f358a6d6f",
+    "url": "https://huggingface.co/datasets/datahiveai/Amazon-Reviews-Dataset"
+  },
+  "products": {
+    "file": "data/raw/products.csv",
+    "bytes": 15372071,
+    "sha256": "a3871141fa5cdd6608ab229a661ba194990c6ba74787dd5ec192fbff82d75fe6",
+    "columns": [
+      "url",
+      "asin",
+      "main_image",
+      "alt_images",
+      "title",
+      "breadcrumbs",
+      "rating",
+      "number_of_ratings",
+      "description",
+      "characteristics"
+    ],
+    "rows": 2727,
+    "malformed_rows": 0,
+    "missing_by_column": {
+      "breadcrumbs": 75,
+      "description": 3
+    },
+    "distinct_identifiers": 2727,
+    "duplicate_identifiers": 0,
+    "exact_duplicate_rows": 0,
+    "distinct_asins": 2727,
+    "numeric_min_max": {
+      "rating": [
+        1.0,
+        5.0
+      ],
+      "number_of_ratings": [
+        1.0,
+        1065754.0
+      ]
+    },
+    "invalid_numeric_by_column": {},
+    "top_level_categories": [
+      [
+        "Toys & Games",
+        508
+      ],
+      [
+        "Arts, Crafts & Sewing",
+        356
+      ],
+      [
+        "Baby Products",
+        284
+      ],
+      [
+        "Beauty & Personal Care",
+        266
+      ],
+      [
+        "Patio, Lawn & Garden",
+        164
+      ],
+      [
+        "Home & Kitchen",
+        136
+      ],
+      [
+        "Health & Household",
+        118
+      ],
+      [
+        "Collectibles & Fine Art",
+        105
+      ],
+      [
+        "Electronics",
+        73
+      ],
+      [
+        "Office Products",
+        67
+      ],
+      [
+        "Tools & Home Improvement",
+        66
+      ],
+      [
+        "Sports & Outdoors",
+        49
+      ],
+      [
+        "Cell Phones & Accessories",
+        45
+      ],
+      [
+        "Clothing, Shoes & Jewelry",
+        43
+      ],
+      [
+        "Appliances",
+        42
+      ],
+      [
+        "Grocery & Gourmet Food",
+        32
+      ],
+      [
+        "CDs & Vinyl",
+        30
+      ],
+      [
+        "Movies & TV",
+        30
+      ],
+      [
+        "Musical Instruments",
+        30
+      ],
+      [
+        "Software",
+        30
+      ],
+      [
+        "Automotive",
+        29
+      ],
+      [
+        "Video Games",
+        29
+      ],
+      [
+        "Pet Supplies",
+        29
+      ],
+      [
+        "Gift Cards",
+        29
+      ],
+      [
+        "Industrial & Scientific",
+        27
+      ],
+      [
+        "Books",
+        6
+      ],
+      [
+        "Kindle Store",
+        5
+      ],
+      [
+        "Safety & Security",
+        4
+      ],
+      [
+        "Non-ASCII source category labels",
+        3
+      ],
+      [
+        "Small Appliance Parts & Accessories",
+        3
+      ],
+      [
+        "Arte y Manualidades",
+        2
+      ],
+      [
+        "Salud y Hogar",
+        2
+      ],
+      [
+        "Kitchen & Dining",
+        2
+      ],
+      [
+        "Juguetes y Juegos",
+        1
+      ],
+      [
+        "Arte Coleccionable y Bellas Artes",
+        1
+      ],
+      [
+        "Herramientas y Mejoras del Hogar",
+        1
+      ],
+      [
+        "Belleza y Cuidado Personal",
+        1
+      ],
+      [
+        "Productos de Oficina",
+        1
+      ],
+      [
+        "Lighting Assemblies & Accessories",
+        1
+      ],
+      [
+        "Outdoor Power Tools",
+        1
+      ],
+      [
+        "Grills & Outdoor Cooking",
+        1
+      ]
+    ]
+  },
+  "reviews": {
+    "file": "data/raw/reviews.csv",
+    "bytes": 127363815,
+    "sha256": "f1cce96bac28beb5bb6c1c21dd2fba6228ea8e60e3c92137ca5d6077f88ad427",
+    "columns": [
+      "id",
+      "asin",
+      "url",
+      "body",
+      "date",
+      "title",
+      "images",
+      "videos",
+      "stars",
+      "user_id",
+      "variation",
+      "found_helpful",
+      "verified_purchase"
+    ],
+    "rows": 255966,
+    "malformed_rows": 0,
+    "missing_by_column": {
+      "variation": 43277,
+      "body": 211,
+      "verified_purchase": 2423,
+      "title": 1333,
+      "user_id": 1333
+    },
+    "distinct_identifiers": 247696,
+    "duplicate_identifiers": 8270,
+    "exact_duplicate_rows": 3832,
+    "distinct_asins": 2689,
+    "numeric_min_max": {
+      "stars": [
+        1.0,
+        5.0
+      ],
+      "found_helpful": [
+        0.0,
+        30351.0
+      ]
+    },
+    "invalid_numeric_by_column": {},
+    "date_min": "1999-07-12",
+    "date_max": "2025-07-17",
+    "date_by_year": {
+      "1999": 2,
+      "2001": 5,
+      "2002": 2,
+      "2003": 4,
+      "2004": 1,
+      "2005": 4,
+      "2006": 6,
+      "2007": 14,
+      "2008": 17,
+      "2009": 29,
+      "2010": 49,
+      "2011": 44,
+      "2012": 81,
+      "2013": 146,
+      "2014": 204,
+      "2015": 284,
+      "2016": 471,
+      "2017": 538,
+      "2018": 744,
+      "2019": 934,
+      "2020": 1670,
+      "2021": 1552,
+      "2022": 2679,
+      "2023": 7914,
+      "2024": 42453,
+      "2025": 196119
+    },
+    "invalid_dates": 0,
+    "empty_bodies": 211,
+    "exact_duplicate_body_rows": 20549,
+    "verified_purchase_values": {
+      "1": 253543,
+      "<empty>": 2423
+    },
+    "star_counts": {
+      "1": 3064,
+      "2": 3350,
+      "3": 12825,
+      "4": 43556,
+      "5": 193171
+    },
+    "duplicate_id_different_rows": 4535,
+    "duplicate_id_other_asin": 4525,
+    "duplicate_asin_id_pairs": 3842,
+    "duplicate_asin_id_different_rows": 10,
+    "reviews_per_asin": {
+      "min": 1,
+      "median": 100,
+      "max": 100,
+      "at_least_100": 2478,
+      "at_least_500": 0
+    }
+  },
+  "join": {
+    "matched_review_rows": 255966,
+    "orphan_review_rows": 0,
+    "orphan_distinct_asins": 0,
+    "products_without_reviews": 38
+  },
+  "rating_comparison": {
+    "comparable_products": 2689,
+    "products_with_source_count_different_from_sample_count": 2680,
+    "largest_absolute_differences": [
+      {
+        "asin": "B0F6YR52T9",
+        "source_rating": 3.4,
+        "sample_review_mean": 5.0,
+        "sample_review_count": 7,
+        "source_rating_count": 71
+      },
+      {
+        "asin": "B07Q6ZPC1Q",
+        "source_rating": 3.6,
+        "sample_review_mean": 2.014,
+        "sample_review_count": 73,
+        "source_rating_count": 1442
+      },
+      {
+        "asin": "B0DY38N2ZF",
+        "source_rating": 3.8,
+        "sample_review_mean": 2.333,
+        "sample_review_count": 3,
+        "source_rating_count": 19
+      },
+      {
+        "asin": "B089QZN7Q9",
+        "source_rating": 4.3,
+        "sample_review_mean": 3.0,
+        "sample_review_count": 3,
+        "source_rating_count": 15
+      },
+      {
+        "asin": "B0F7NLX4CF",
+        "source_rating": 4.3,
+        "sample_review_mean": 3.0,
+        "sample_review_count": 2,
+        "source_rating_count": 9
+      },
+      {
+        "asin": "B00HQLDVA2",
+        "source_rating": 4.0,
+        "sample_review_mean": 2.75,
+        "sample_review_count": 4,
+        "source_rating_count": 12
+      },
+      {
+        "asin": "B0D3PC567M",
+        "source_rating": 4.3,
+        "sample_review_mean": 3.11,
+        "sample_review_count": 100,
+        "source_rating_count": 378
+      },
+      {
+        "asin": "B0866XSSM9",
+        "source_rating": 4.7,
+        "sample_review_mean": 3.511,
+        "sample_review_count": 47,
+        "source_rating_count": 241
+      },
+      {
+        "asin": "B0DNLZW7KQ",
+        "source_rating": 4.3,
+        "sample_review_mean": 3.167,
+        "sample_review_count": 24,
+        "source_rating_count": 110
+      },
+      {
+        "asin": "B0D24SHZRH",
+        "source_rating": 3.7,
+        "sample_review_mean": 2.586,
+        "sample_review_count": 29,
+        "source_rating_count": 86
+      }
+    ]
+  }
+}

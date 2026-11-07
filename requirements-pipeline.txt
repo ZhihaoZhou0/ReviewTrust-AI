@@ -1,0 +1,3 @@
+# Local A2 validation and incremental loading (Python 3.12).
+polars==1.44.2
+psycopg[binary]==3.3.8
