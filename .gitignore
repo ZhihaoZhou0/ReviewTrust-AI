@@ -236,3 +236,5 @@ models/*.pkl
 
 # OS-generated files
 .DS_Store
+# Local SBERT experiment backup
+experiments/sbert_similarity_v1.py
