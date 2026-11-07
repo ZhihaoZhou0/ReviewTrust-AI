@@ -23,6 +23,7 @@ class Product:
     source_rating: float
     source_rating_count: int
     image_url: str | None
+    category_path: str = ""
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,7 @@ def _product(row: dict) -> Product:
         source_rating=float(row["source_rating"]),
         source_rating_count=int(row["source_rating_count"]),
         image_url=row["main_image_url"] or None,
+        category_path=row["category_breadcrumbs"] or "",
     )
 
 
