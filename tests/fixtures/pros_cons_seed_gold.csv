@@ -1,0 +1,51 @@
+item_id,text,gold_labels,case_type
+g001,Keeps my water cold all day.,temperature:pro,basic
+g002,"Keeps my coffee hot for hours, but the lid leaks everywhere.",temperature:pro;leaks:con,contrast
+g003,It does not leak at all.,leaks:pro,negation
+g004,Super easy to clean and dishwasher safe.,cleaning:pro,basic
+g005,The straw is really hard to clean.,cleaning:con,basic
+g006,These run small so order a size up.,size_fit:con,basic
+g007,Fits true to size and feels very comfortable.,size_fit:pro;comfort:pro,multi
+g008,Not comfortable at all after an hour of wearing them.,comfort:con,negation
+g009,The fabric is soft but it ripped after the second wash.,comfort:pro;durability:con,contrast
+g010,Great price for a pack of twelve.,value:pro,basic
+g011,Way too expensive for what you get.,value:con,basic
+g012,Totally worth the money.,value:pro,basic
+g013,It stopped working after two weeks.,durability:con,basic
+g014,The handle broke off the first time I dropped it.,durability:con,basic
+g015,Very sturdy and well made.,quality:pro,basic
+g016,Feels cheap and flimsy.,quality:con,basic
+g017,The flavor is delicious and not too sweet.,taste:pro,negation
+g018,Tastes awful and leaves a weird aftertaste.,taste:con,basic
+g019,I love the scent.,scent:pro,basic
+g020,The smell is way too strong for me.,scent:con,implicit
+g021,Gentle on my sensitive skin.,skin:pro,basic
+g022,This broke me out within two days.,skin:con,basic
+g023,The battery lasts all week on a single charge.,battery:pro,implicit
+g024,Battery life is terrible.,battery:con,basic
+g025,Arrived damaged and the box was crushed.,packaging_shipping:con,basic
+g026,Shipping was fast and the packaging was great.,packaging_shipping:pro,basic
+g027,Customer service was helpful and sent a replacement right away.,seller_service:pro,basic
+g028,I had to return it because it never worked.,seller_service:con;performance:con,multi
+g029,The colors are beautiful and exactly as pictured.,appearance:pro,basic
+g030,The color faded after a few washes.,appearance:con,basic
+g031,Very easy to use even for my parents.,ease_of_use:pro,basic
+g032,The instructions were confusing and setup took forever.,ease_of_use:con,implicit
+g033,It works great on tough stains.,performance:pro,basic
+g034,Didn't work for me at all.,performance:con,negation
+g035,Lightweight and easy to carry around.,weight:pro,basic
+g036,Too bulky to fit in my bag.,weight:con,basic
+g037,It is quiet enough to run at night.,noise:pro,basic
+g038,The motor is so loud it wakes the baby.,noise:con,implicit
+g039,I bought this as a gift for my sister.,,no_opinion
+g040,Ordered it on Monday and used it the same day.,,no_opinion
+g041,Love it!,,no_aspect
+g042,Five stars.,,no_aspect
+g043,"Great, it broke on day two.",durability:con,sarcasm
+g044,The lid is not hard to clean.,cleaning:pro,negation
+g045,The material is thin and you can see through it.,material:con,implicit
+g046,"Good quality, though the price went up recently.",quality:pro;value:con,contrast
+g047,Not worth the money.,value:con,negation
+g048,"The size is perfect, however the color is not what I expected.",size_fit:pro;appearance:con,contrast
+g049,My kids love the taste.,taste:pro,basic
+g050,The cushioning gave out after a month.,comfort:con;durability:con,implicit

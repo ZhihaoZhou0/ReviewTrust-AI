@@ -219,7 +219,22 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Downloaded source datasets and cleaned CSV output
+# ReviewTrust AI - Local datasets
 data/raw/
 data/processed/
+
+# Large generated data files
+*.parquet
+
+# Local environment configuration
+.env.*
+!.env.example
+
+# Generated ML models
+models/*.joblib
+models/*.pkl
+
+# OS-generated files
 .DS_Store
+# Local SBERT experiment backup
+experiments/sbert_similarity_v1.py
