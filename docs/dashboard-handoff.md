@@ -1,43 +1,175 @@
-# Dashboard Milestone 1 and Team Handoff
+# Dashboard Integration and Team Handoff
 
-The Streamlit evidence desk is implemented on the D feature branch. It reads the completed A1 PostgreSQL database and keeps unfinished trust and theme analysis in a clearly labeled future state. The interface presents a consumer-facing research flow: an Amazon-link A vs B comparison, image-led categories, layered product imagery, a filterable catalog grid, a clearly labeled best-reviewed shortlist, product search, aggregate evidence, and comparison. All UI copy is in English.
+## Overview
 
-## Run locally
+The ReviewTrust AI Streamlit dashboard integrates product discovery, PostgreSQL-backed review exploration, experimental B1 reliability analytics, and B2 evidence-backed pros and cons.
 
-From the repository root, after following [database-setup.md](database-setup.md):
+The integrated dashboard was merged into `main` through Pull Request #6.
 
-    python3.12 -m venv .venv
-    .venv/bin/python -m pip install -r requirements-dashboard.txt
-    docker compose up -d --wait db
-    python3 pipeline/load_snapshot.py
-    .venv/bin/python -m streamlit run dashboard/app.py
+The interface supports a consumer-facing workflow for discovering products, inspecting review evidence, and comparing two products.
 
-The dashboard opens at http://localhost:8501. It expects the A1 local database at 127.0.0.1:5433 by default. The data access layer also accepts PGHOST, PGPORT, PGDATABASE, PGUSER, and PGPASSWORD, matching the A1 loader.
+## Run Locally
 
-## Current user flow
+From the repository root, after initializing PostgreSQL as described in [Database Setup](database-setup.md):
 
-1. Paste two full Amazon product URLs in the hero. The app extracts the ASIN locally and matches each product against the historical review catalog; it does not fetch Amazon pages or follow short links. Use the example pair to try the flow.
-2. Open an image-led category, a featured product, or a best-reviewed pick. The Search area also supports product names, ASINs, category filtering, and suggested starting points, with image-led matches and a selector for more results.
-3. Inspect a product in the image-led detail view. It shows the product-page rating and sampled mean separately, with their respective counts, the review window, and a direct comparison action. Hover or focus a pulse card for its calculation context.
-4. Open the prominent evidence panel when needed to see a compact five-to-one-star distribution with exact counts and original review excerpts with source IDs.
-5. Use the Compare view to inspect two products side by side.
+```bash
+python -m pip install -r requirements-dashboard.txt
+docker compose up -d --wait db
+python -m streamlit run dashboard/app.py
+```
 
-A small future-analysis note replaces large empty panels. The app does not invent weighted ratings, fraud labels, extracted themes, prices, or purchasing functionality. Product-page ratings and sample means are labeled separately throughout. Featured products use their actual catalog images and listed ratings. The best-reviewed area is explicitly a **review-based candidate shortlist**, not a final price/value verdict: it requires at least 50 sampled reviews, a sampled mean of at least 4.5, and a listed rating of at least 4.4, then shows one candidate per category. Prices and B1 trust signals are not available yet.
+Streamlit typically opens at:
 
-The motion system uses CSS entrance and hover transitions, subtle hero movement, layered product imagery with perspective and grounded shadows, search-result lift, a product-stage hover, and aggregate review cards that reveal explanatory details on hover or keyboard focus. `prefers-reduced-motion` disables animation and keeps aggregate details visible. Original reviews are hidden until the explicit evidence action is opened, keeping the main decision flow concise. The rating distribution uses accessible HTML and CSS instead of Plotly, so the dashboard no longer requires that dependency.
+`http://localhost:8501`
 
-The typography pairs Bricolage Grotesque for the wordmark, headlines, product names, and key figures with Onest for reading and controls. DM Mono remains reserved for small evidence labels. Font files load through Google Fonts with system fallbacks.
+If the default port is occupied, Streamlit may use another port.
 
-## Integration boundary for B1, B2, and C
+The database connection defaults to the A1 local PostgreSQL instance at `127.0.0.1:5433`.
 
-The current read-only adapter is [dashboard/data_access.py](../dashboard/data_access.py). Team C can replace its PostgreSQL queries without changing the Streamlit layout if it preserves the Product, ProductSnapshot, and ReviewExcerpt shapes.
+Supported environment variables:
 
-- **B1 trust result:** For each ASIN, provide the weighted rating, the number of sampled reviews used, a versioned weight rule, and a list of anomaly signals. Each signal should have a label, measured value, and plain-language explanation. Treat signals as indicators, not confirmed fake reviews.
-- **B2 pros and cons result:** For each ASIN, provide separate positive and negative aspects. Each aspect should include a label, mention count, and at least one real review excerpt with its source review ID.
-- **C integration:** Expose one Python function per product to retrieve the B1 and B2 results, returning an explicit unavailable state when analysis has not run. Keep calculation code outside dashboard/app.py.
+- `PGHOST`
+- `PGPORT`
+- `PGDATABASE`
+- `PGUSER`
+- `PGPASSWORD`
 
-The product-page rating and sampled-review mean must remain separate. The dataset includes at most 100 source reviews for most products and does not provide a useful verified-versus-unverified purchase split.
+The dashboard requires a populated PostgreSQL database for product discovery and review exploration.
+
+## User Experience
+
+### Product Discovery
+
+Users can browse image-led categories, featured products, and review-based shortlists.
+
+The search interface supports product names, ASINs, and category filtering.
+
+### Amazon URL Comparison
+
+Users can paste two full Amazon product URLs.
+
+The application extracts ASINs locally and matches them against the historical dataset. It does not fetch live Amazon pages or resolve shortened links.
+
+Only products represented in the local catalog can be compared.
+
+### Product Inspection
+
+Product details include:
+
+- Product-page rating.
+- Sampled-review mean.
+- Sample review count.
+- Historical review evidence.
+- B1 reliability metrics when available.
+- B2 recurring pros and cons when available.
+
+### B1 Review Reliability
+
+The B1 panel displays experimental trust-adjusted ratings alongside sampled-review averages.
+
+Metrics include:
+
+- Original sampled rating.
+- Trust-adjusted rating.
+- Rating difference.
+- Number of adjusted reviews.
+- Percentage of adjusted reviews.
+
+These signals are analytical indicators and should not be interpreted as confirmed fake-review detection.
+
+### B2 Pros and Cons
+
+The B2 panel presents recurring positive and negative review aspects.
+
+Users can expand an aspect to inspect supporting review excerpts.
+
+The panel uses precomputed results rather than generating new NLP outputs on each dashboard interaction.
+
+### Review Pulse
+
+The dashboard provides aggregate review indicators, including star distributions, sampled-review counts, and comparisons with listed product ratings.
+
+Detailed review evidence remains available through expandable interface elements.
+
+### Side-by-Side Comparison
+
+Users can compare two catalog products, including their listed ratings, sampled-review averages, review counts, and available B1 reliability metrics.
+
+## Data Access and Integration
+
+### PostgreSQL Data Access
+
+`dashboard/data_access.py`
+
+Provides product discovery, product snapshots, and review evidence from PostgreSQL.
+
+The dashboard uses a Python data access layer rather than a separate API service.
+
+### B1/B2 Analysis Access
+
+`dashboard/analysis_access.py`
+
+Loads precomputed analytics from:
+
+```text
+data/processed/product_rating_comparison.csv
+data/processed/product_pros_cons_cards.csv
+```
+
+The B1 output provides product-level rating adjustments.
+
+The B2 output provides product-level positive and negative aspects with supporting evidence.
+
+Both files are included in the repository.
+
+The application handles unavailable analysis results separately from the core PostgreSQL product data.
+
+## Interface Design
+
+The dashboard uses custom HTML and CSS within Streamlit.
+
+Visual features include:
+
+- Image-led product discovery.
+- Responsive product cards.
+- Product comparison layouts.
+- CSS entrance and hover transitions.
+- Accessible focus behavior.
+- Reduced-motion support using `prefers-reduced-motion`.
+
+Typography uses Bricolage Grotesque, Onest, and DM Mono, with system font fallbacks.
+
+The dashboard uses CSS-based rating visualizations rather than requiring Plotly for those elements.
 
 ## Validation
 
-The adapter queried all 2,727 products from the local database; a product snapshot's star-count sum matched its sample count. Unit tests cover common Amazon URL shapes and reject unrelated or shortened links. Streamlit AppTest verified the URL comparison flow and opening the detailed evidence. The redesigned page was inspected with real PostgreSQL data in Chrome.
+The integrated dashboard has been manually inspected using the populated PostgreSQL database.
+
+Verified interactions include:
+
+- Product browsing and search.
+- Amazon URL matching.
+- Product inspection.
+- B1 reliability metric display.
+- B2 expandable review evidence.
+- Two-product comparison.
+
+Automated regression tests after merging PR #6:
+
+**63 passed, 10 subtests passed.**
+
+Run:
+
+```bash
+python -m pytest tests/ -q
+```
+
+## Limitations
+
+- The underlying review snapshot is historical.
+- Product-page ratings and sampled-review averages are different measures.
+- Most products have at most 100 sampled reviews.
+- Trust adjustments are experimental and are not fraud verdicts.
+- Pros and cons are extracted from available review text and may not represent every customer experience.
+- Product data and reviews require PostgreSQL; precomputed B1/B2 CSV files do not replace the database.
+- The application does not provide live Amazon pricing, purchasing, or real-time review updates.
