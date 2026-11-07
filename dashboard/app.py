@@ -15,9 +15,8 @@ from dashboard.view_model import amazon_asin, filter_products, product_label
 st.set_page_config(page_title="ReviewTrust | Product evidence desk", page_icon="◒", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap');
 :root { --paper:#F5F3EC; --ink:#202620; --muted:#657067; --line:#DADDD0; --lime:#D6EA8D; }
-html,body,[class*="css"],[data-testid="stApp"] { font-family:'DM Sans',sans-serif; }
+html,body,[class*="css"],[data-testid="stApp"] { font-family:'Onest',Arial,sans-serif; }
 [data-testid="stApp"] { background:var(--paper); color:var(--ink); }
 .block-container { max-width:1240px; padding-top:1.45rem; padding-bottom:5rem; }
 header[data-testid="stHeader"] { background:transparent; }

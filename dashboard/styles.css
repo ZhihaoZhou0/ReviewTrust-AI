@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Onest:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 :root { --paper:#FBFAF7; --ink:#212238; --muted:#72758A; --line:#E5E5E8; --violet:#7767DF; --lime:#DDF39D; }
 [data-testid="stApp"] { background:var(--paper); color:var(--ink); }
 .block-container { max-width:1320px; padding-top:.8rem; padding-bottom:0; }
@@ -284,3 +284,20 @@ div[data-testid="stExpander"] { margin-top:1.2rem; border:1px solid #E6E5EE; bor
 @media (max-width:800px) { .rt-hero-copy { padding:3.2rem 2rem; }.rt-hero-art { min-height:340px; }.st-key-evidence_panel { grid-template-columns:1fr; }.rt-evidence-intro h3 { font-size:1.15rem; } }
 @media (max-width:600px) { .rt-hero-copy { padding:2.6rem 1.5rem; }.rt-intro h1 { font-size:3.25rem; }.rt-hero-art { min-height:280px; }.st-key-hero_compare { padding:1.15rem; }.rt-hero-compare-label strong { font-size:1.25rem; }.rt-shortlist-note { font-size:.72rem; }.rt-dist-card { padding:1.1rem; }.rt-dist-head h3 { font-size:1.1rem; }.rt-dist-share strong { font-size:1.6rem; }.rt-compare-identity { grid-template-columns:82px 1fr; }.rt-compare-product-image { height:90px; } }
 @media (prefers-reduced-motion:reduce) { .rt-dist-fill { animation:none; } }
+
+/* Typography: an expressive display face with a restrained reading face. */
+:root { --rt-display:'Bricolage Grotesque',Arial,sans-serif; --rt-body:'Onest',Arial,sans-serif; }
+html,body,[data-testid="stApp"],[data-testid="stApp"] button,[data-testid="stApp"] input,[data-testid="stApp"] select { font-family:var(--rt-body); }
+.rt-wordmark { font-family:var(--rt-display); font-weight:800; font-size:1.37rem; letter-spacing:-.065em; }
+.rt-intro h1,.rt-section-head h2,.rt-spotlight-copy h3,.rt-workspace-intro h2,.rt-product-head h2,.rt-review-heading h3,.rt-evidence-intro h3,.rt-dist-head h3 { font-family:var(--rt-display); font-optical-sizing:auto; letter-spacing:-.052em; }
+.rt-intro h1 { font-weight:700; line-height:.99; letter-spacing:-.06em; }
+.rt-intro h1 em { font-family:var(--rt-display); font-style:normal; font-weight:500; letter-spacing:-.065em; text-decoration:underline; text-decoration-color:#BEB2F0; text-decoration-thickness:.09em; text-underline-offset:.1em; }
+.rt-section-head h2 { font-weight:700; line-height:1.04; }
+.rt-spotlight-copy h3,.rt-workspace-intro h2,.rt-product-head h2 { font-weight:650; line-height:1.08; }
+.rt-hero-compare-label strong { font-family:var(--rt-display); font-weight:700; letter-spacing:-.045em; }
+.rt-category-label,.rt-feature-body h3,.rt-browse-info h3,.rt-best-body h3,.rt-pulse-card h3,.rt-compare-identity h3 { font-family:var(--rt-display); font-weight:700; letter-spacing:-.035em; }
+.rt-category-label { font-size:1.08rem; line-height:1.12; }
+.rt-stat .value,.rt-best-metric strong,.rt-pulse-card > strong,.rt-dist-share strong { font-family:var(--rt-display); font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.065em; }
+.rt-intro p,.rt-hero-compare-label p,.rt-shortlist-note,.rt-best-proof,.rt-review p,.rt-note,.rt-future p { font-family:var(--rt-body); letter-spacing:0; }
+.rt-intro p { line-height:1.58; }
+[data-testid="stApp"] button { font-weight:600; letter-spacing:-.015em; }

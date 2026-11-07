@@ -26,6 +26,8 @@ A small future-analysis note replaces large empty panels. The app does not inven
 
 The motion system uses CSS entrance and hover transitions, subtle hero movement, layered product imagery with perspective and grounded shadows, and aggregate review cards that reveal explanatory details on hover or keyboard focus. `prefers-reduced-motion` disables animation and keeps aggregate details visible. Original reviews are hidden until the explicit evidence action is opened, keeping the main decision flow concise. The rating distribution uses accessible HTML and CSS instead of Plotly, so the dashboard no longer requires that dependency.
 
+The typography pairs Bricolage Grotesque for the wordmark, headlines, product names, and key figures with Onest for reading and controls. DM Mono remains reserved for small evidence labels. Font files load through Google Fonts with system fallbacks.
+
 ## Integration boundary for B1, B2, and C
 
 The current read-only adapter is [dashboard/data_access.py](../dashboard/data_access.py). Team C can replace its PostgreSQL queries without changing the Streamlit layout if it preserves the Product, ProductSnapshot, and ReviewExcerpt shapes.
