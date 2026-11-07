@@ -12,6 +12,10 @@ import psycopg
 import streamlit as st
 from dashboard.data_access import Product, ProductSnapshot, ReviewExcerpt, load_catalog, load_product_snapshot, load_recent_reviews
 from dashboard.view_model import filter_products, product_label
+from dashboard.analysis_access import (
+    load_reliability_results,
+    load_pros_cons_results,
+)
 
 st.set_page_config(page_title="ReviewTrust | Product evidence desk", page_icon="◒", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""
@@ -81,6 +85,14 @@ def snapshot(asin: str) -> ProductSnapshot | None:
 def recent_reviews(asin: str) -> list[ReviewExcerpt]:
     return load_recent_reviews(asin, limit=6)
 
+@st.cache_data(ttl=120, show_spinner=False)
+def reliability_results():
+    return load_reliability_results()
+
+@st.cache_data(ttl=120, show_spinner=False)
+def pros_cons_results():
+    return load_pros_cons_results()
+
 def section(title: str, number: str, note: str = "") -> None:
     st.markdown(f'<div class="rt-section-head"><div><div class="rt-section-label">{escape(number)}</div><h2>{escape(title)}</h2></div><p>{escape(note)}</p></div>', unsafe_allow_html=True)
 
@@ -139,12 +151,114 @@ def review_card(review: ReviewExcerpt) -> str:
         body = body[:267].rsplit(" ", 1)[0] + "..."
     return f'<article class="rt-review"><div class="rating">{"★" * review.stars} &nbsp; {review.stars} / 5 STARS</div><h3>{escape(review.title or "Untitled review")}</h3><p>{escape(body)}</p><div class="meta">{escape(str(review.review_date))} &nbsp; / &nbsp; Source ID {escape(review.source_review_id)}</div></article>'
 
+
+def render_pros_cons(asin: str) -> None:
+    """Display B2 product themes and supporting review evidence."""
+    result = pros_cons_results().get(asin)
+
+    if result is None:
+        st.info("Pros & Cons analysis is unavailable for this product.")
+        return
+
+    st.caption(
+        f"Based on {result.n_text_reviews:,} text reviews analyzed "
+        "using B2 aspect extraction."
+    )
+
+    pros_col, cons_col = st.columns(2, gap="large")
+
+    def render_aspects(aspects: list, positive: bool) -> None:
+        heading = "What reviewers liked" if positive else "What reviewers disliked"
+        st.markdown(f"**{heading}**")
+
+        if not aspects:
+            st.caption(
+                "No qualifying positive themes were extracted."
+                if positive
+                else "No qualifying negative themes were extracted."
+            )
+            return
+
+        for aspect in aspects[:5]:
+            label = str(aspect.get("label", "Other"))
+            count = int(aspect.get("review_count", 0))
+            support = str(aspect.get("support_level", "unknown"))
+
+            with st.expander(f"{label} · {count} reviews"):
+                st.caption(f"Evidence support: {support}")
+
+                evidence = aspect.get("evidence", [])
+
+                if not evidence:
+                    st.caption("No supporting excerpts available.")
+                    continue
+
+                for review in evidence[:3]:
+                    text = str(review.get("text", "")).strip()
+                    stars = review.get("stars", "N/A")
+
+                    if text:
+                        st.markdown(f"> {text}")
+                        st.caption(f"Review rating: {stars}/5")
+
+    with pros_col:
+        render_aspects(result.pros, positive=True)
+
+    with cons_col:
+        render_aspects(result.cons, positive=False)
+
+
+
 def compare_card(item: ProductSnapshot, number: str) -> None:
     product = item.product
-    st.markdown(f'<div class="rt-compare-card"><span class="number">PRODUCT {number}</span><h3>{escape(product.title)}</h3><div class="meta">{escape(product.category)} &nbsp; / &nbsp; {escape(product.asin)}</div>', unsafe_allow_html=True)
-    for label, value in (("Product-page rating", f"{product.source_rating:.1f} / 5"), ("Rating from sample", f"{item.sample_rating:.2f} / 5" if item.sample_rating is not None else "No reviews"), ("Reviews in sample", f"{item.sample_review_count:,}"), ("Product-page rating count", f"{product.source_rating_count:,}")):
-        st.markdown(f'<div class="rt-compare-row"><span>{escape(label)}</span><strong>{escape(value)}</strong></div>', unsafe_allow_html=True)
+    reliability = reliability_results().get(product.asin)
+
+    st.markdown(
+        f'<div class="rt-compare-card">'
+        f'<span class="number">PRODUCT {escape(number)}</span>'
+        f'<h3>{escape(product.title)}</h3>'
+        f'<div class="meta">{escape(product.category)}'
+        f' &nbsp; / &nbsp; {escape(product.asin)}</div>',
+        unsafe_allow_html=True,
+    )
+
+    rows = [
+        ("Product-page rating", f"{product.source_rating:.1f} / 5"),
+        (
+            "Rating from sample",
+            f"{item.sample_rating:.2f} / 5"
+            if item.sample_rating is not None else "No reviews",
+        ),
+        ("Reviews in sample", f"{item.sample_review_count:,}"),
+        ("Product-page rating count", f"{product.source_rating_count:,}"),
+    ]
+
+    if reliability is not None:
+        delta = reliability.adjusted_rating - reliability.original_rating
+
+        rows.extend([
+            ("Trust-adjusted rating", f"{reliability.adjusted_rating:.2f} / 5"),
+            ("B1 rating change", f"{delta:+.3f}"),
+            (
+                "Reviews adjusted",
+                f"{reliability.adjusted_review_count:,} "
+                f"({reliability.adjusted_review_percentage:.1f}%)",
+            ),
+        ])
+    else:
+        rows.append(("Trust-adjusted rating", "Unavailable"))
+
+    for label, value in rows:
+        st.markdown(
+            f'<div class="rt-compare-row">'
+            f'<span>{escape(label)}</span>'
+            f'<strong>{escape(value)}</strong>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
     st.markdown("</div>", unsafe_allow_html=True)
+
 
 try:
     products = catalog()
@@ -236,8 +350,64 @@ if st.session_state["view"] == "Explore":
             with one: stat("Product-page rating", f"{selected.product.source_rating:.1f} / 5", f"{selected.product.source_rating_count:,} ratings listed on product page")
             with two: stat("Rating from sample", f"{selected.sample_rating:.2f} / 5" if selected.sample_rating is not None else "—", "Mean of cleaned reviews in this dataset")
             with three: stat("Reviews in sample", f"{selected.sample_review_count:,}", "Historical review records available here")
+            
+            # B1: Product-level review reliability analysis
+            reliability = reliability_results().get(selected.product.asin)
+
+            if reliability is not None:
+                st.markdown(
+                    '<div class="rt-micro" style="margin-top:1.2rem">'
+                    'B1 / REVIEW RELIABILITY ANALYSIS'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+
+                trust_one, trust_two, trust_three = st.columns(3, gap="medium")
+
+                with trust_one:
+                    stat(
+                        "Trust-adjusted rating",
+                        f"{reliability.adjusted_rating:.2f} / 5",
+                        f"Original B1 sample rating: {reliability.original_rating:.2f}",
+                    )
+
+                with trust_two:
+                    rating_delta = (
+                        reliability.adjusted_rating - reliability.original_rating
+                    )
+                    stat(
+                        "Rating change",
+                        f"{rating_delta:+.3f}",
+                        "Adjusted rating minus original B1 sample rating",
+                    )
+
+                with trust_three:
+                    stat(
+                        "Reviews adjusted",
+                        f"{reliability.adjusted_review_count:,}",
+                        f"{reliability.adjusted_review_percentage:.1f}% "
+                        "of B1 analyzed reviews",
+                    )
+
+                st.caption(
+                    "B1 uses review reliability signals to adjust the contribution "
+                    "of certain reviews. The adjusted rating is an experimental "
+                    "sample-based metric, not an official Amazon rating or a "
+                    "determination that a review is fraudulent."
+                )
+            else:
+                st.caption(
+                    "B1 reliability analysis is not available for this product."
+                )
+
             st.markdown('<div class="rt-note">These ratings come from different populations. The product-page rating reflects its listed rating count; the sample mean uses only cleaned reviews available in this dataset.</div>', unsafe_allow_html=True)
-            section("Go beyond the stars", "05 / EVIDENCE", "Distribution and original review excerpts")
+            section(
+                "What reviewers are saying",
+                "05 / PROS & CONS",
+                "Recurring product themes with supporting review excerpts",
+            )
+            render_pros_cons(selected.product.asin)
+            section("Go beyond the stars", "06 / EVIDENCE", "Distribution and original review excerpts")
             st.markdown('<div class="rt-micro">Ratings in this sample</div>', unsafe_allow_html=True)
             st.plotly_chart(star_chart(selected), width="stretch", config={"displayModeBar": False})
             st.caption("Counts reflect the cleaned dataset sample, not all product-page ratings.")
