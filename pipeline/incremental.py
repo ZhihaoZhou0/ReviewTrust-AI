@@ -7,7 +7,7 @@ and inserts new records into PostgreSQL.
 Key features:
 - Deterministic batch identifiers
 - Batch-level quality validation
-- Duplicate prevention using source_row_hash
+- Rerun protection using source_row_number without collapsing repeated content
 - Transactional checkpoint tracking
 - Safe reruns and failure recovery
 """
@@ -40,7 +40,7 @@ SOURCE_REVISION = snapshot_manifest()["source"]["revision"]
 
 # Increment this value if the batching logic changes in
 # a way that should generate new batch identities.
-PIPELINE_VERSION = "v1"
+PIPELINE_VERSION = "v2-retain-repeated-reviews"
 
 # Reuse the exact cleaned column order defined by A1.
 COLUMNS = ", ".join(REVIEW_OUTPUT)
@@ -101,7 +101,7 @@ def make_batch_id(rows, batch_number):
     Generate a deterministic SHA-256 identifier for one batch.
 
     The ID depends on the source revision, pipeline version,
-    batch position, row count, and source row hashes.
+    batch position, row count, source positions, and row hashes.
 
     Processing the same batch again produces the same ID,
     allowing previously completed batches to be recognized.
@@ -113,10 +113,10 @@ def make_batch_id(rows, batch_number):
         f"{batch_number}|{len(rows)}|".encode()
     )
 
-    # Include the ordered record hashes in the batch identity.
+    # Equal content at different source positions must remain distinct.
     for row in rows:
         digest.update(
-            row["source_row_hash"].encode("ascii")
+            f"{row['source_row_number']}:{row['source_row_hash']}|".encode("ascii")
         )
 
     return digest.hexdigest()
@@ -177,20 +177,34 @@ def load_batch(conn, rows, batch_id, batch_number):
                         for col in REVIEW_OUTPUT
                     ])
 
-            # Insert only reviews not already stored.
-            # The unique source_row_hash prevents duplicate rows.
+            # The source position identifies an imported CSV row.
+            # Equal content hashes at different positions are retained.
             cur.execute(
                 f"""
                 INSERT INTO reviewtrust.reviews ({COLUMNS})
                 SELECT {COLUMNS}
                 FROM stage_incremental
-                ON CONFLICT (source_row_hash)
+                ON CONFLICT (source_row_number)
                 DO NOTHING
                 """
             )
 
             # PostgreSQL reports how many rows were actually inserted.
             inserted = cur.rowcount
+
+            # A reused source position with changed content must fail loudly.
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM stage_incremental AS s
+                LEFT JOIN reviewtrust.reviews AS r
+                  ON r.source_row_number = s.source_row_number
+                WHERE r.review_pk IS NULL
+                   OR r.source_row_hash <> s.source_row_hash
+                """
+            )
+            if cur.fetchone()[0]:
+                raise ValueError("Source row positions do not match stored reviews")
 
             # Record the successful batch in the same transaction.
             # A previously failed checkpoint becomes completed

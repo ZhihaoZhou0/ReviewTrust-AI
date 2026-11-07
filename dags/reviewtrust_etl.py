@@ -93,8 +93,8 @@ def reviewtrust_etl():
         """
         Run A1's existing cleaning pipeline.
 
-        Cleaning standardizes source fields, validates required
-        values, and removes exact duplicate review rows.
+        Cleaning standardizes source fields and validates required
+        values while retaining repeated review rows.
 
         The cleaning implementation is reused rather than
         duplicated inside the Airflow DAG.
@@ -137,7 +137,7 @@ def reviewtrust_etl():
         Run batch-level quality checks before database loading.
 
         Validation covers required fields, schema integrity,
-        ratings, dates, foreign keys, and duplicate hashes.
+        ratings, dates, foreign keys, and source-position integrity.
 
         An invalid batch raises an exception, preventing
         the incremental loading task from executing.

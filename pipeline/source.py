@@ -18,11 +18,11 @@ def snapshot_manifest() -> dict:
 
 
 def expected_counts() -> tuple[int, int]:
-    """Return the audited product count and deduplicated review count."""
+    """Return audited source counts, including repeated review rows."""
     manifest = snapshot_manifest()
     return (
         manifest["products"]["rows"],
-        manifest["reviews"]["rows"] - manifest["reviews"]["exact_duplicate_rows"],
+        manifest["reviews"]["rows"],
     )
 
 

@@ -12,7 +12,9 @@ from pathlib import Path
 import polars as pl
 
 from pipeline import validate
-from pipeline.clean_dataset import PRODUCT_OUTPUT, REVIEW_OUTPUT
+from pipeline.clean_dataset import (
+    PRODUCT_OUTPUT, REVIEW_COLUMNS, REVIEW_OUTPUT, process_file,
+)
 from pipeline.source import expected_counts, verify_file
 
 
@@ -29,10 +31,42 @@ class SourceContractTests(unittest.TestCase):
                 verify_file(path, 13, "0" * 64)
 
     def test_expected_counts_match_a1_audit(self) -> None:
-        self.assertEqual(expected_counts(), (2727, 252134))
+        self.assertEqual(expected_counts(), (2727, 255966))
 
 
 class QualityGateTests(unittest.TestCase):
+    def test_identical_source_reviews_remain_two_rows(self) -> None:
+        asin = "B000000001"
+        source_row = {
+            "id": "R0001", "asin": asin, "url": "", "body": "Excellent",
+            "date": "Wed Jan 01 2025", "title": "Great", "images": "[]",
+            "videos": "[]", "stars": "5", "user_id": "U1",
+            "variation": "", "found_helpful": "0", "verified_purchase": "1",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "reviews.csv"
+            destination = Path(directory) / "reviews_clean.csv"
+            with source.open("w", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=REVIEW_COLUMNS)
+                writer.writeheader()
+                writer.writerows([source_row, source_row])
+            stats, _ = process_file(
+                source, destination, REVIEW_COLUMNS, REVIEW_OUTPUT,
+                "reviews", {asin},
+            )
+            with destination.open(newline="") as handle:
+                rows = list(csv.DictReader(handle))
+            self.assertEqual(stats["output_rows"], 2)
+            self.assertEqual([row["source_row_number"] for row in rows], ["1", "2"])
+            self.assertEqual(rows[0]["source_row_hash"], rows[1]["source_row_hash"])
+            result = validate.validate_batch(pl.DataFrame(rows), {asin}, 1)
+            self.assertTrue(result["valid"])
+            self.assertEqual(result["repeated_content_rows"], 1)
+            rows[1]["source_row_number"] = "1"
+            duplicate_position = validate.validate_batch(pl.DataFrame(rows), {asin}, 1)
+            self.assertFalse(duplicate_position["valid"])
+            self.assertEqual(duplicate_position["issues"]["duplicate_source_row_numbers"], 1)
+
     def test_empty_cleaned_snapshot_fails_and_writes_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)

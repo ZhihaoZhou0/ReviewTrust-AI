@@ -17,7 +17,7 @@ from pipeline.clean_dataset import (
     PRODUCT_OUTPUT,
     REVIEW_OUTPUT,
 )
-from pipeline.source import expected_counts
+from pipeline.source import expected_counts, snapshot_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -119,12 +119,13 @@ def validate_batch(batch, product_asins, batch_id):
         parsed_dates.is_not_null()
     )
 
-    # Prevent duplicate source records inside the same batch.
-    hashes = batch["source_row_hash"].to_list()
-
-    issues["duplicate_hashes"] = (
-        len(hashes) - len(set(hashes))
+    # Source positions must be unique; repeated content is valid evidence.
+    row_numbers = batch["source_row_number"].to_list()
+    issues["duplicate_source_row_numbers"] = (
+        len(row_numbers) - len(set(row_numbers))
     )
+    hashes = batch["source_row_hash"].to_list()
+    repeated_content_rows = len(hashes) - len(set(hashes))
 
     # Reviews must reference an existing product.
     issues["unknown_asin"] = count_invalid(
@@ -164,6 +165,7 @@ def validate_batch(batch, product_asins, batch_id):
         "row_count": batch.height,
         "valid": len(issues) == 0,
         "issues": issues,
+        "repeated_content_rows": repeated_content_rows,
     }
 
 
@@ -171,8 +173,8 @@ def run_validation():
     """
     Validate all cleaned reviews and generate a JSON report.
 
-    Checks individual batches and detects repeated source hashes
-    across different batches.
+    Checks source-position integrity across batches and reports repeated
+    content hashes as evidence rather than rejecting them.
     """
     products_path = PROCESSED_DIR / "products_clean.csv"
     reviews_path = PROCESSED_DIR / "reviews_clean.csv"
@@ -209,7 +211,9 @@ def run_validation():
 
     results = []
     seen_hashes = set()
-    cross_batch_duplicates = 0
+    seen_row_numbers = set()
+    repeated_content_rows = 0
+    cross_batch_duplicate_row_numbers = 0
 
     # Validate the dataset in fixed-size chunks.
     for batch_id, batch in enumerate(
@@ -220,15 +224,17 @@ def run_validation():
             batch, product_asins, batch_id
         )
 
-        # Track hashes across batches because duplicate detection
-        # within a single batch is not sufficient.
+        # Repeated hashes are a signal; repeated positions are a load error.
         hashes = batch["source_row_hash"].to_list()
-
-        cross_batch_duplicates += sum(
-            h in seen_hashes for h in hashes
+        row_numbers = batch["source_row_number"].to_list()
+        for row_hash in hashes:
+            if row_hash in seen_hashes:
+                repeated_content_rows += 1
+            seen_hashes.add(row_hash)
+        cross_batch_duplicate_row_numbers += sum(
+            number in seen_row_numbers for number in row_numbers
         )
-
-        seen_hashes.update(hashes)
+        seen_row_numbers.update(row_numbers)
         results.append(result)
 
         status = "PASS" if result["valid"] else "FAIL"
@@ -253,12 +259,17 @@ def run_validation():
         snapshot_issues["review_count"] = {
             "expected": expected_reviews, "actual": reviews.height
         }
+    expected_repeated = snapshot_manifest()["reviews"]["exact_duplicate_rows"]
+    if repeated_content_rows != expected_repeated:
+        snapshot_issues["repeated_content_rows"] = {
+            "expected": expected_repeated, "actual": repeated_content_rows
+        }
 
     # Every batch must pass, the audited totals must match, and
-    # cross-batch duplicate count must be zero.
+    # source positions must never repeat.
     all_valid = (
         all(result["valid"] for result in results)
-        and cross_batch_duplicates == 0
+        and cross_batch_duplicate_row_numbers == 0
         and len(results) > 0
         and not snapshot_issues
     )
@@ -267,7 +278,8 @@ def run_validation():
         "valid": all_valid,
         "total_rows": reviews.height,
         "total_batches": len(results),
-        "cross_batch_duplicates": cross_batch_duplicates,
+        "cross_batch_duplicate_row_numbers": cross_batch_duplicate_row_numbers,
+        "repeated_content_rows": repeated_content_rows,
         "snapshot_issues": snapshot_issues,
         "failed_batches": sum(
             not result["valid"] for result in results
@@ -290,9 +302,10 @@ def run_validation():
     print("Total batches:", report["total_batches"])
     print("Failed batches:", report["failed_batches"])
     print(
-        "Cross-batch duplicates:",
-        cross_batch_duplicates,
+        "Cross-batch duplicate source positions:",
+        cross_batch_duplicate_row_numbers,
     )
+    print("Repeated-content review rows:", repeated_content_rows)
     print("Overall:", "PASS" if all_valid else "FAIL")
 
     # Raise an exception so Airflow blocks downstream loading.
