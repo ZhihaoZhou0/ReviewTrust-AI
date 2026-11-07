@@ -17,14 +17,14 @@ The dashboard opens at http://localhost:8501. It expects the A1 local database a
 ## Current user flow
 
 1. Paste two full Amazon product URLs in the hero. The app extracts the ASIN locally and matches each product against the historical review catalog; it does not fetch Amazon pages or follow short links. Use the example pair to try the flow.
-2. Open an image-led category, a featured product, a best-reviewed pick, or search by product name or ASIN.
-3. Inspect the product-page rating, sampled mean, review count, and aggregate review pulse. Hover or focus a pulse card for its calculation context.
+2. Open an image-led category, a featured product, or a best-reviewed pick. The Search area also supports product names, ASINs, category filtering, and suggested starting points, with image-led matches and a selector for more results.
+3. Inspect a product in the image-led detail view. It shows the product-page rating and sampled mean separately, with their respective counts, the review window, and a direct comparison action. Hover or focus a pulse card for its calculation context.
 4. Open the prominent evidence panel when needed to see a compact five-to-one-star distribution with exact counts and original review excerpts with source IDs.
 5. Use the Compare view to inspect two products side by side.
 
 A small future-analysis note replaces large empty panels. The app does not invent weighted ratings, fraud labels, extracted themes, prices, or purchasing functionality. Product-page ratings and sample means are labeled separately throughout. Featured products use their actual catalog images and listed ratings. The best-reviewed area is explicitly a **review-based candidate shortlist**, not a final price/value verdict: it requires at least 50 sampled reviews, a sampled mean of at least 4.5, and a listed rating of at least 4.4, then shows one candidate per category. Prices and B1 trust signals are not available yet.
 
-The motion system uses CSS entrance and hover transitions, subtle hero movement, layered product imagery with perspective and grounded shadows, and aggregate review cards that reveal explanatory details on hover or keyboard focus. `prefers-reduced-motion` disables animation and keeps aggregate details visible. Original reviews are hidden until the explicit evidence action is opened, keeping the main decision flow concise. The rating distribution uses accessible HTML and CSS instead of Plotly, so the dashboard no longer requires that dependency.
+The motion system uses CSS entrance and hover transitions, subtle hero movement, layered product imagery with perspective and grounded shadows, search-result lift, a product-stage hover, and aggregate review cards that reveal explanatory details on hover or keyboard focus. `prefers-reduced-motion` disables animation and keeps aggregate details visible. Original reviews are hidden until the explicit evidence action is opened, keeping the main decision flow concise. The rating distribution uses accessible HTML and CSS instead of Plotly, so the dashboard no longer requires that dependency.
 
 The typography pairs Bricolage Grotesque for the wordmark, headlines, product names, and key figures with Onest for reading and controls. DM Mono remains reserved for small evidence labels. Font files load through Google Fonts with system fallbacks.
 
