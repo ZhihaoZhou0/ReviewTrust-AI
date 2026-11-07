@@ -1,6 +1,6 @@
 # Dashboard Milestone 1 and Team Handoff
 
-The Streamlit evidence desk is implemented on the D feature branch. It reads the completed A1 PostgreSQL database and keeps unfinished trust and theme analysis in a clearly labeled future state. The interface presents a consumer-facing research flow: a product-led hero with a working A vs B picker, image-led categories, a staggered four-product feature, a filterable catalog grid, a review-based Best Buy shortlist, product search, aggregate evidence, and comparison. All UI copy is in English.
+The Streamlit evidence desk is implemented on the D feature branch. It reads the completed A1 PostgreSQL database and keeps unfinished trust and theme analysis in a clearly labeled future state. The interface presents a consumer-facing research flow: an Amazon-link A vs B comparison, image-led categories, layered product imagery, a filterable catalog grid, a clearly labeled best-reviewed shortlist, product search, aggregate evidence, and comparison. All UI copy is in English.
 
 ## Run locally
 
@@ -16,15 +16,15 @@ The dashboard opens at http://localhost:8501. It expects the A1 local database a
 
 ## Current user flow
 
-1. Select two popular products in the hero to preview their sampled means and open the full comparison.
-2. Open an image-led category, a featured product, a Best Buy candidate, or search by product name or ASIN.
+1. Paste two full Amazon product URLs in the hero. The app extracts the ASIN locally and matches each product against the historical review catalog; it does not fetch Amazon pages or follow short links. Use the example pair to try the flow.
+2. Open an image-led category, a featured product, a best-reviewed pick, or search by product name or ASIN.
 3. Inspect the product-page rating, sampled mean, review count, and aggregate review pulse. Hover or focus a pulse card for its calculation context.
-4. Expand the evidence panel when needed to see the Plotly rating distribution and original review excerpts with source IDs.
+4. Open the prominent evidence panel when needed to see a compact five-to-one-star distribution with exact counts and original review excerpts with source IDs.
 5. Use the Compare view to inspect two products side by side.
 
-A small future-analysis note replaces large empty panels. The app does not invent weighted ratings, fraud labels, extracted themes, prices, or purchasing functionality. Product-page ratings and sample means are labeled separately throughout. Featured products use their actual catalog images and listed ratings. The Best Buy area is explicitly a **review-based candidate shortlist**, not a final price/value verdict: it requires at least 50 sampled reviews, a sampled mean of at least 4.5, and a listed rating of at least 4.4, then shows one candidate per category. Prices and B1 trust signals are not available yet.
+A small future-analysis note replaces large empty panels. The app does not invent weighted ratings, fraud labels, extracted themes, prices, or purchasing functionality. Product-page ratings and sample means are labeled separately throughout. Featured products use their actual catalog images and listed ratings. The best-reviewed area is explicitly a **review-based candidate shortlist**, not a final price/value verdict: it requires at least 50 sampled reviews, a sampled mean of at least 4.5, and a listed rating of at least 4.4, then shows one candidate per category. Prices and B1 trust signals are not available yet.
 
-The motion system uses CSS entrance and hover transitions, subtle hero movement, mixed-height product imagery, and aggregate review cards that reveal explanatory details on hover or keyboard focus. `prefers-reduced-motion` disables animation and keeps aggregate details visible. Original reviews are collapsed by default to keep the main decision flow concise.
+The motion system uses CSS entrance and hover transitions, subtle hero movement, layered product imagery with perspective and grounded shadows, and aggregate review cards that reveal explanatory details on hover or keyboard focus. `prefers-reduced-motion` disables animation and keeps aggregate details visible. Original reviews are hidden until the explicit evidence action is opened, keeping the main decision flow concise. The rating distribution uses accessible HTML and CSS instead of Plotly, so the dashboard no longer requires that dependency.
 
 ## Integration boundary for B1, B2, and C
 
@@ -38,4 +38,4 @@ The product-page rating and sampled-review mean must remain separate. The datase
 
 ## Validation
 
-The adapter queried all 2,727 products from the local database; a product snapshot's star-count sum matched its sample count. Streamlit AppTest rendered both views and verified search, empty results, side-by-side comparison, same-product feedback, and the product-to-compare action. The redesigned page was also inspected with real PostgreSQL data in Chrome.
+The adapter queried all 2,727 products from the local database; a product snapshot's star-count sum matched its sample count. Unit tests cover common Amazon URL shapes and reject unrelated or shortened links. Streamlit AppTest verified the URL comparison flow and opening the detailed evidence. The redesigned page was inspected with real PostgreSQL data in Chrome.
