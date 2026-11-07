@@ -1,0 +1,38 @@
+
+# ReviewTrust AI - Apache Airflow Docker Image
+#
+# Purpose:
+# Build a reproducible Airflow environment with the Python
+# dependencies required by the ReviewTrust ETL pipeline.
+#
+# Using Docker avoids conflicts with Python packages
+# installed on the developer's local machine.
+
+
+# Use Apache Airflow 3.3.2 with Python 3.12.
+# The fixed image version improves reproducibility.
+FROM apache/airflow:3.3.2-python3.12
+
+
+# Install the dependencies required by our ETL modules.
+#
+# apache-airflow:
+#   Pin the Airflow version to match the base image.
+#
+# polars:
+#   Used for batch-level data validation and processing.
+#
+# psycopg:
+#   PostgreSQL client for database connections,
+#   incremental loading, and batch monitoring.
+#
+# --no-cache-dir:
+#   Avoid storing unnecessary pip download caches
+#   inside the final Docker image.
+#
+# Version constraints prevent unintended major upgrades.
+
+RUN pip install --no-cache-dir \
+    "apache-airflow==3.3.2" \
+    "polars>=1,<2" \
+    "psycopg[binary]>=3,<4"

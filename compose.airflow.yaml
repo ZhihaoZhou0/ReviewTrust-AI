@@ -1,0 +1,125 @@
+
+# ReviewTrust AI - Airflow Docker Compose Configuration
+#
+# Purpose:
+# Run Apache Airflow alongside the existing PostgreSQL service.
+#
+# This file extends the team's original compose.yaml rather
+# than replacing or modifying A1's database configuration.
+#
+# Start the services with:
+#
+# docker compose -f compose.yaml -f compose.airflow.yaml up -d --build
+
+
+services:
+
+  airflow:
+
+    # Build the custom Airflow image using Dockerfile.airflow.
+    # This image includes the dependencies used by our
+    # existing Python ETL modules.
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+
+
+    # Run Airflow in standalone mode.
+    #
+    # Standalone mode is suitable for local development
+    # and demonstrations. It starts the required Airflow
+    # components with a simplified setup.
+    command: standalone
+
+
+    # Start Airflow only after PostgreSQL passes its
+    # configured health check.
+    #
+    # The "db" service is defined in the original
+    # compose.yaml maintained by A1.
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+    # Expose the Airflow Web UI on localhost:8080.
+    #
+    # Binding to 127.0.0.1 limits access to the
+    # developer's local machine.
+    ports:
+      - "127.0.0.1:8080:8080"
+
+
+    # Environment variables configure Airflow and
+    # provide database connection settings.
+    environment:
+
+      # Disable built-in Airflow example DAGs.
+      # Only project-related DAGs should appear.
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+      # Specify the location of our Airflow DAG files
+      # inside the container.
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+
+
+      # Add the ReviewTrust project directory to Python's
+      # module search path.
+      #
+      # This allows imports such as:
+      # from pipeline.validate import validate_batch
+      PYTHONPATH: /opt/reviewtrust
+
+
+      # PostgreSQL connection settings.
+      #
+      # Containers communicate using Docker service names,
+      # so the hostname is "db", not "localhost".
+      #
+      # Port 5432 is PostgreSQL's internal container port.
+      # The Mac host uses port 5433 in the original setup.
+      PGHOST: db
+      PGPORT: "5432"
+
+      # Reuse the database configuration from compose.yaml.
+      # Defaults support the local development environment.
+      PGDATABASE: ${POSTGRES_DB:-reviewtrust}
+      PGUSER: ${POSTGRES_USER:-reviewtrust}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-reviewtrust_dev}
+
+
+    # Mount local project files into the Airflow container.
+    #
+    # These mounts let Airflow execute the existing ETL
+    # modules without copying them into the Docker image.
+    volumes:
+
+      # Persist Airflow metadata and local runtime files.
+      # This keeps the Airflow state across container restarts.
+      - airflow_home:/opt/airflow
+
+      # Mount DAG definitions as read-only.
+      # Airflow can discover and execute these DAGs.
+      - ./dags:/opt/airflow/dags:ro
+
+      # Mount existing ETL modules as read-only.
+      # This prevents Airflow from modifying source code.
+      - ./pipeline:/opt/reviewtrust/pipeline:ro
+
+      # Share raw and processed datasets with Airflow.
+      # Read-write access is required because cleaning
+      # generates files in data/processed.
+      - ./data:/opt/reviewtrust/data
+
+      # Share ETL reports and documentation.
+      # The cleaning task writes cleaning-report.json
+      # to the docs directory.
+      - ./docs:/opt/reviewtrust/docs
+
+
+# Named Docker volume for Airflow runtime data.
+#
+# PostgreSQL storage remains managed separately
+# by the original compose.yaml.
+volumes:
+  airflow_home:
