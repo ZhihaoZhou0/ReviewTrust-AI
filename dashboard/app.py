@@ -619,47 +619,46 @@ if st.session_state["view"] == "Explore":
                             use_container_width=True,
                         )
 
+
             # B1: Product-level review reliability analysis.
             reliability = reliability_results().get(selected.product.asin)
 
+            st.markdown(
+                '<div class="rt-micro" style="margin-top:1.2rem">'
+                'B1 / REVIEW RELIABILITY ANALYSIS'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+
             if reliability is not None:
+                rating_delta = (
+                    reliability.adjusted_rating
+                    - reliability.original_rating
+                )
+
                 st.markdown(
-                    '<div class="rt-micro" style="margin-top:1.2rem">'
-                    'B1 / REVIEW RELIABILITY ANALYSIS'
+                    '<div class="rt-inspect-metrics" '
+                    'style="grid-template-columns:repeat(3,minmax(0,1fr))">'
+                    '<div>'
+                    '<span>TRUST-ADJUSTED RATING</span>'
+                    f'<strong>{reliability.adjusted_rating:.2f}'
+                    '<small> / 5</small></strong>'
+                    f'<em>Original B1 sample: {reliability.original_rating:.2f}</em>'
+                    '</div>'
+                    '<div>'
+                    '<span>RATING CHANGE</span>'
+                    f'<strong>{rating_delta:+.3f}</strong>'
+                    '<em>Adjusted minus original B1 rating</em>'
+                    '</div>'
+                    '<div>'
+                    '<span>REVIEWS ADJUSTED</span>'
+                    f'<strong>{reliability.adjusted_review_count:,}</strong>'
+                    f'<em>{reliability.adjusted_review_percentage:.1f}% '
+                    'of B1 analyzed reviews</em>'
+                    '</div>'
                     '</div>',
                     unsafe_allow_html=True,
                 )
-
-                trust_one, trust_two, trust_three = st.columns(
-                    3, gap="medium"
-                )
-
-                with trust_one:
-                    stat(
-                        "Trust-adjusted rating",
-                        f"{reliability.adjusted_rating:.2f} / 5",
-                        f"Original B1 sample rating: "
-                        f"{reliability.original_rating:.2f}",
-                    )
-
-                with trust_two:
-                    rating_delta = (
-                        reliability.adjusted_rating
-                        - reliability.original_rating
-                    )
-                    stat(
-                        "Rating change",
-                        f"{rating_delta:+.3f}",
-                        "Adjusted rating minus original B1 sample rating",
-                    )
-
-                with trust_three:
-                    stat(
-                        "Reviews adjusted",
-                        f"{reliability.adjusted_review_count:,}",
-                        f"{reliability.adjusted_review_percentage:.1f}% "
-                        "of B1 analyzed reviews",
-                    )
 
                 st.caption(
                     "B1 uses review reliability signals to adjust the "
@@ -672,6 +671,7 @@ if st.session_state["view"] == "Explore":
                 st.caption(
                     "B1 reliability analysis is not available for this product."
                 )
+
 
             st.markdown('<div class="rt-note">These ratings come from different populations. The product-page rating reflects its listed rating count; the sample mean uses only cleaned reviews available in this dataset.</div>', unsafe_allow_html=True)
 
@@ -819,4 +819,20 @@ else:
             with chart_right:
                 st.markdown(rating_distribution(right_snapshot), unsafe_allow_html=True)
 
-st.markdown('<div class="rt-future"><div><strong>Trust signals and recurring themes</strong><p>Deeper review analysis is being developed. When available, this desk will show weighted ratings, unusual patterns, and evidence-backed pros and cons.</p></div><span>COMING IN A LATER RELEASE ↗</span></div><div class="rt-footer">DataHive Amazon Reviews sample &nbsp; / &nbsp; Historical data, not live Amazon ratings &nbsp; / &nbsp; Review patterns are not fraud verdicts</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="rt-future">'
+    '<div>'
+    '<strong>Review intelligence, beyond the stars</strong>'
+    '<p>Explore trust-adjusted ratings, recurring product pros and cons, '
+    'and evidence-backed review insights. Our analysis helps you understand '
+    'the patterns behind product ratings.</p>'
+    '</div>'
+    '<span>B1 + B2 ANALYSIS AVAILABLE ↗</span>'
+    '</div>'
+    '<div class="rt-footer">'
+    'DataHive Amazon Reviews sample &nbsp; / &nbsp; '
+    'Historical data, not live Amazon ratings &nbsp; / &nbsp; '
+    'Review patterns are not fraud verdicts'
+    '</div>',
+    unsafe_allow_html=True,
+)
