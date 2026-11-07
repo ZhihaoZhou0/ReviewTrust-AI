@@ -2,64 +2,168 @@
 
 **A product has 4.8 stars. Can you trust the reviews behind that number?**
 
-ReviewTrust AI is a hackathon project for exploring the reliability of Amazon product reviews. The planned experience helps someone search for a product, inspect review patterns and an explainable weighted rating, read evidence-backed pros and cons, and compare two products side by side. Review signals are clues, not proof that a review is fake.
+ReviewTrust AI is a consumer-focused review intelligence platform developed for a hackathon. It helps users explore Amazon product reviews beyond the headline star rating through review reliability signals, evidence-backed pros and cons, and side-by-side product comparisons.
 
-## The demo we are building
+ReviewTrust AI does not claim to identify fake reviews with certainty. Its trust signals are explainable indicators based on historical review samples.
 
-1. **Find a product:** Search and filter products.
-2. **Understand its reviews:** Compare the product-page rating with sampled-review and weighted ratings, and inspect unusual patterns.
-3. **Read the evidence:** Explore recurring pros and cons with representative review excerpts.
-4. **Compare two options:** View ratings, sample size, signals, and tradeoffs together.
+## Key Features
 
-The MVP uses PostgreSQL, Python analysis modules, and a Streamlit + Plotly dashboard. A Python data access layer will connect them; a separate FastAPI service is outside the MVP.
+1. **Product discovery:** Browse categories, search by product name or ASIN, and explore featured products and review-based shortlists.
+2. **Review reliability (B1):** Compare listed ratings, sampled-review means, and experimental trust-adjusted ratings. Inspect rating changes and adjusted review counts.
+3. **Evidence-backed pros and cons (B2):** Explore recurring positive and negative product aspects, supported by actual review excerpts.
+4. **Product comparison:** Paste two supported Amazon product URLs or select products to compare their review evidence side by side.
+5. **Review exploration:** Inspect star distributions, review counts, historical review windows, and supporting review excerpts.
 
-## Build status
+## Architecture and Tech Stack
+
+- **Data source:** DataHive Amazon Reviews Dataset, pinned historical snapshot.
+- **Data engineering:** Python, CSV validation, cleaning, PostgreSQL, transactional loading, and Airflow orchestration.
+- **Analytics:** Python-based review reliability and aspect extraction modules.
+- **Integration:** PostgreSQL data access and precomputed B1/B2 CSV result adapters.
+- **Frontend:** Streamlit, HTML, and CSS.
+- **Testing:** Python automated tests and manual dashboard validation.
+
+The MVP uses a Python data access layer rather than a separate FastAPI service.
+
+## Build Status
 
 | Workstream | Scope | Status |
 | --- | --- | --- |
-| A1 - Data foundation | Source audit, cleaning, schema, PostgreSQL snapshot import | **Integrated** |
-| A2 - Data pipeline | Data quality, incremental review loading, Airflow orchestration | **Integrated for the pinned snapshot** |
-| B1 - Trust analytics | Similarity, anomaly signals, weighted ratings | In progress on a feature branch |
-| B2 - NLP | Pros and cons extraction and evaluation | Planned |
-| C - Integration | Python data access, PostgreSQL queries, and module integration | Planned |
-| D - Dashboard | Product search, trust views, pros and cons, and two-product comparison | In progress on this branch |
+| A1 — Data Foundation | Source audit, cleaning, schema, PostgreSQL snapshot import | Integrated |
+| A2 — Data Pipeline | Data quality, incremental loading, Airflow orchestration | Integrated for pinned snapshot |
+| B1 — Trust Analytics | Review reliability signals and adjusted ratings | Integrated |
+| B2 — NLP | Evidence-backed pros and cons extraction | Integrated |
+| C — Integration | PostgreSQL access and B1/B2 result adapters | Integrated for dashboard MVP |
+| D — Dashboard | Discovery, review evidence, B1/B2 views, product comparison | Integrated |
 
-The first D preview is now in progress on this branch. It includes live product search, factual review-sample views, and a two-product comparison; B1/B2 analysis panels remain pending. See [dashboard-handoff.md](docs/dashboard-handoff.md) for local setup and integration details.
+## Data Foundation and Pipeline
 
-## Data foundation and pipeline
+We use the pinned [DataHive Amazon Reviews Dataset](https://huggingface.co/datasets/datahiveai/Amazon-Reviews-Dataset), revision `2531d9083bd3aab11261eab7e69d0d0f358a6d6f`.
 
-We use the pinned [DataHive Amazon Reviews Dataset](https://huggingface.co/datasets/datahiveai/Amazon-Reviews-Dataset), revision `2531d9083bd3aab11261eab7e69d0d0f358a6d6f`. The source has 2,727 products and 255,966 review rows. **Every valid review row is retained**, including 3,832 additional rows with exactly repeated content. Repetition may be a useful review-pattern signal; it is not a fraud verdict. Most reviewed products have at most 100 sampled reviews; product-page ratings and sampled-review means are separate measures.
+The source contains:
 
-A1 verifies both raw-file SHA-256 digests, cleans the CSVs without collapsing repeated reviews, creates PostgreSQL tables and indexes, and imports the snapshot transactionally. A2 validates the cleaned data against the A1 contract and audited counts, writes review batches with transactional checkpoints, and orchestrates verification, cleaning, validation, loading, and monitoring with Airflow. Repeated batches are skipped by source position; repeated review content remains available for analysis. The pinned historical snapshot is not a live data stream, and product changes require a new source revision and bootstrap strategy.
+- 2,727 products.
+- 255,966 review rows.
+- 3,832 additional rows with exactly repeated review content, retained for analysis.
 
-See the [source audit](docs/data-audit.md), [data contract](docs/data-contract.md), [database setup](docs/database-setup.md), and [A2 pipeline guide](docs/etl-pipeline.md).
+Most reviewed products have at most 100 sampled reviews. Product-page ratings and sampled-review means are separate measures.
 
-## Run locally
+A1 verifies raw-file SHA-256 digests, cleans the CSVs without collapsing repeated reviews, creates PostgreSQL tables and indexes, and imports the snapshot transactionally.
 
-Use Python 3.12, Docker Compose, and a local `psql` client. From the repository root:
+A2 validates cleaned data against the A1 contract and audited counts, writes review batches with transactional checkpoints, and orchestrates verification, cleaning, validation, loading, and monitoring with Airflow.
+
+Repeated batches are skipped by source position; repeated review content remains available for analysis. The pinned historical snapshot is not a live data stream.
+
+Documentation:
+
+- [Source Audit](docs/data-audit.md)
+- [Data Contract](docs/data-contract.md)
+- [Database Setup](docs/database-setup.md)
+- [A2 Pipeline Guide](docs/etl-pipeline.md)
+- [Dashboard Guide](docs/dashboard-handoff.md)
+
+## Run Locally
+
+### Prerequisites
+
+- Python 3.12
+- Docker Desktop or Docker Engine with Compose
+- Git
+- A local PostgreSQL client, or PostgreSQL tools inside the Docker container
+
+### 1. Set Up Python
+
+**Windows PowerShell:**
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-pipeline.txt
+python -m pip install -r requirements-dashboard.txt
+```
+
+**Linux/macOS:**
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -r requirements-pipeline.txt
-mkdir -p data/raw
-curl -fL -o data/raw/products.csv https://huggingface.co/datasets/datahiveai/Amazon-Reviews-Dataset/resolve/2531d9083bd3aab11261eab7e69d0d0f358a6d6f/products.csv
-curl -fL -o data/raw/reviews.csv https://huggingface.co/datasets/datahiveai/Amazon-Reviews-Dataset/resolve/2531d9083bd3aab11261eab7e69d0d0f358a6d6f/reviews.csv
-docker compose up -d --wait db
-.venv/bin/python pipeline/load_snapshot.py
-.venv/bin/python -m pipeline.validate
-.venv/bin/python -m pipeline.incremental
+source .venv/bin/activate
+python -m pip install -r requirements-pipeline.txt
+python -m pip install -r requirements-dashboard.txt
 ```
 
-The snapshot importer creates the A1 tables and A2 checkpoint table in one transaction. Because it already loads every review, the subsequent incremental run records and then skips the same 26 batches without adding duplicate reviews. Actual insertion and failure recovery were also checked in an isolated products-only database.
+### 2. Prepare the Dataset
 
-To run the Airflow DAG locally:
+Download `products.csv` and `reviews.csv` from the pinned DataHive dataset revision into `data/raw/`.
+
+The raw data files are excluded from Git.
+
+See [Database Setup](docs/database-setup.md) for detailed source verification and initialization instructions.
+
+### 3. Start PostgreSQL
+
+```bash
+docker compose up -d --wait db
+```
+
+Initialize the database using the documented A1 snapshot-loading process:
+
+```bash
+python pipeline/load_snapshot.py
+```
+
+The snapshot importer requires PostgreSQL client tools. On Windows, where `psql` may not be installed locally, follow the Docker-based alternative in the database setup documentation.
+
+### 4. Launch the Dashboard
+
+```bash
+python -m streamlit run dashboard/app.py
+```
+
+Open the local URL displayed by Streamlit, typically:
+
+`http://localhost:8501`
+
+The dashboard uses PostgreSQL for product and review data and reads precomputed B1/B2 results from:
+
+```text
+data/processed/product_rating_comparison.csv
+data/processed/product_pros_cons_cards.csv
+```
+
+These two analysis result files are included in the repository.
+
+### 5. Run Tests
+
+```bash
+python -m pytest tests/ -q
+```
+
+Latest local regression result after merging PR #6:
+
+**63 passed, 10 subtests passed.**
+
+## Airflow Pipeline
+
+Start the Airflow services:
 
 ```bash
 docker compose -f compose.yaml -f compose.airflow.yaml up -d --build
 ```
 
-Open `http://localhost:8080` and manually trigger `reviewtrust_etl`. The DAG is intentionally unscheduled for the historical snapshot. Its five tasks verify source files, clean, validate, load, and monitor. The source and cleaned CSV files stay outside Git.
+Open `http://localhost:8080` and manually trigger the `reviewtrust_etl` DAG.
 
-Run regression checks with `.venv/bin/python -m unittest discover -s tests -v`.
+The DAG is intentionally unscheduled for the historical snapshot. Its five tasks verify source files, clean, validate, load, and monitor.
 
-To preview the D dashboard on this branch, follow [dashboard-handoff.md](docs/dashboard-handoff.md).
+## Limitations
+
+- The dataset is historical, not a live Amazon feed.
+- Product-page ratings may differ from sampled-review averages.
+- Most products have limited sampled review coverage.
+- Trust-adjusted ratings are experimental analytical estimates, not official Amazon ratings.
+- Unusual review patterns are not proof of fraud.
+- B2 pros and cons reflect patterns in available review text, not guaranteed product properties.
+- The dashboard requires a populated PostgreSQL database for its core product and review views.
+
+## Project Documentation
+
+For detailed dashboard behavior, integration interfaces, and setup notes, see [Dashboard Guide](docs/dashboard-handoff.md).
