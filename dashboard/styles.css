@@ -119,3 +119,88 @@ div[data-testid="stPills"] button:hover { transform:translateY(-2px); }
 @media (max-width:800px) { .rt-art-one,.rt-art-two { animation:none; } }
 @media (max-width:700px) { .st-key-spotlight [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] { padding-top:0!important; }.st-key-spotlight .rt-feature-image { height:235px; }.rt-spotlight-copy { min-height:0; padding:1rem 0; }.rt-browse-image { height:175px; }.rt-review-heading { align-items:start; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; transition-duration:.01ms!important; } }
+
+/* Product-led hero and the functional comparison dock. */
+.rt-intro { background:#DDF1F6; min-height:520px; }
+.rt-hero-copy { padding-top:4.8rem; }
+.rt-intro h1 em { color:#5F50C4; }
+.rt-hero-art { background:linear-gradient(145deg,#D0EAF5 0%,#BFE3EF 70%,#E7F5F7 100%); min-height:520px; }
+.rt-hero-platform { position:absolute; width:110%; height:42%; bottom:-3%; left:-3%; background:linear-gradient(135deg,#FBE38C,#EAC34E); clip-path:polygon(0 28%,68% 0,100% 14%,100% 100%,0 100%); box-shadow:0 10px 35px #75632726; }
+.rt-hero-product { position:absolute; display:grid; place-items:center; border-radius:28px; background:#FFFFFF8C; backdrop-filter:blur(4px); box-shadow:0 24px 36px #23334624; transition:transform .45s cubic-bezier(.2,.8,.2,1),box-shadow .45s ease; }
+.rt-hero-product img { width:85%; height:84%; object-fit:contain; mix-blend-mode:multiply; filter:drop-shadow(0 15px 14px #24324920); }
+.rt-hero-product.item-0 { width:31%; height:56%; left:7%; top:27%; transform:rotate(-8deg); animation:rt-hero-product-one 7s ease-in-out infinite; }
+.rt-hero-product.item-1 { width:31%; height:51%; left:39%; top:8%; transform:rotate(7deg); animation:rt-hero-product-two 8s ease-in-out infinite; }
+.rt-hero-product.item-2 { width:30%; height:48%; right:3%; top:37%; transform:rotate(-5deg); animation:rt-hero-product-three 7.5s ease-in-out infinite; }
+@keyframes rt-hero-product-one { 50% { transform:translateY(-9px) rotate(-6deg); } }
+@keyframes rt-hero-product-two { 50% { transform:translateY(9px) rotate(9deg); } }
+@keyframes rt-hero-product-three { 50% { transform:translateY(-7px) rotate(-3deg); } }
+.rt-intro .rt-art-sticker { bottom:4%; right:3%; width:92px; height:92px; z-index:2; }
+.st-key-hero_compare { position:relative; z-index:3; margin:-3.2rem 3rem 1.4rem; padding:1.3rem 1.6rem 1rem; background:#FFF; border:1px solid #ECECF1; border-radius:23px; box-shadow:0 22px 48px #28253D21; }
+.rt-hero-compare-label { display:flex; align-items:center; gap:1.2rem; margin:0 0 .8rem; }
+.rt-hero-compare-label span { color:#7565D6; font-family:'DM Mono',monospace; font-size:.64rem; letter-spacing:.08em; }
+.rt-hero-compare-label strong { color:#24243D; font-size:1.12rem; letter-spacing:-.025em; }
+.st-key-hero_compare [data-testid="stSelectbox"] label { color:#696D7D; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; }
+.st-key-hero_compare [data-baseweb="select"] > div { min-height:45px; border:1px solid #D7D6E3; background:#FAFAFD; }
+.st-key-hero_compare [data-testid="stButton"] button { min-height:45px; background:#24243D; color:#FFF; border-radius:12px; white-space:nowrap; }
+.rt-vs { display:grid; place-items:center; height:45px; color:#7767DF; font-weight:800; font-size:.85rem; }
+.rt-hero-result { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; padding-top:.7rem; border-top:1px solid #EEEFF2; font-size:.72rem; color:#656879; }
+.rt-hero-result span { display:flex; align-items:center; gap:.45rem; min-width:0; }
+.rt-hero-result b { display:grid; place-items:center; width:22px; height:22px; border-radius:50%; background:#E9E6FA; color:#6554C6; }
+.rt-hero-result strong { color:#28243D; white-space:nowrap; }
+.rt-hero-result small { margin-left:auto; font-size:.64rem; color:#9A9AA8; }
+
+/* Category cards borrow the reference's colorful, image-led navigation. */
+.st-key-category_tiles { margin:.5rem 0 3.5rem; }
+.st-key-category_tiles [data-testid="stColumn"] { position:relative; }
+.rt-category-card { position:relative; height:215px; overflow:hidden; border-radius:22px; padding:1.1rem; transition:transform .3s ease,box-shadow .3s ease; }
+.rt-category-card.mint { background:#BFE0D8; }.rt-category-card.sun { background:#F7C771; }.rt-category-card.rose { background:#E9A5B5; }.rt-category-card.blue { background:#A9D4ED; }.rt-category-card.lilac { background:#CDC5EE; }
+.rt-category-card:hover { transform:translateY(-6px); box-shadow:0 20px 30px #24213D1B; }
+.rt-category-label { position:relative; z-index:2; max-width:95%; color:#22233B; font-size:1.05rem; line-height:1.12; font-weight:800; letter-spacing:-.04em; }
+.rt-category-image { position:absolute; inset:43px 5px -25px; display:grid; place-items:center; }
+.rt-category-image img { max-width:78%; max-height:83%; object-fit:contain; mix-blend-mode:multiply; filter:drop-shadow(0 12px 10px #24213D1E); transition:transform .38s ease; }
+.rt-category-card:hover img { transform:scale(1.08) rotate(-3deg); }
+.st-key-category_tiles [data-testid="stButton"] { position:absolute; z-index:3; left:1rem; right:1rem; bottom:.8rem; }
+.st-key-category_tiles [data-testid="stButton"] button { width:auto; min-height:1.8rem; padding:.25rem .7rem; background:#FFFFFFDD; border:0; color:#303149; border-radius:22px; font-size:.65rem; transition:background .25s,color .25s,transform .25s; }
+.st-key-category_tiles [data-testid="stButton"] button:hover { background:#25243D; border-color:#25243D; color:white; transform:translateY(-2px); }
+
+/* Unequal picture heights make the featured composition feel editorial. */
+.st-key-spotlight .rt-feature-card.size-0 .rt-feature-image { height:370px; }
+.st-key-spotlight .rt-feature-card.size-1 .rt-feature-image { height:260px; }
+.st-key-spotlight .rt-feature-card.size-2 .rt-feature-image { height:205px; }
+.st-key-spotlight .rt-feature-card.size-3 .rt-feature-image { height:315px; }
+
+/* Best Buy is explicitly a review-based candidate list, not a price claim. */
+.rt-shortlist-note { max-width:780px; margin:-.3rem 0 1.2rem; color:#777989; font-size:.78rem; line-height:1.55; }
+.st-key-best_buy { margin-bottom:2.3rem; }
+.rt-best-card { overflow:hidden; min-height:380px; background:white; border:1px solid #E8E8ED; border-radius:22px; box-shadow:0 10px 28px #24213D0B; transition:transform .3s ease,box-shadow .3s ease; }
+.rt-best-card:hover { transform:translateY(-6px); box-shadow:0 20px 35px #24213D1B; }
+.rt-best-image { position:relative; height:205px; display:grid; place-items:center; }
+.rt-best-image.tone-0 { background:#E8F0D8; }.rt-best-image.tone-1 { background:#EBE5F8; }.rt-best-image.tone-2 { background:#F9E9D9; }.rt-best-image.tone-3 { background:#DDEEF5; }
+.rt-best-image img { max-width:78%; max-height:78%; object-fit:contain; mix-blend-mode:multiply; transition:transform .4s ease; }
+.rt-best-card:hover img { transform:scale(1.07); }
+.rt-best-image span { position:absolute; top:.8rem; left:.8rem; z-index:1; padding:.32rem .6rem; background:#FFFE; border-radius:20px; color:#585771; font-family:'DM Mono',monospace; font-size:.55rem; }
+.rt-best-body { padding:1rem 1.15rem 1.1rem; }
+.rt-best-category { color:#796BD3; font-family:'DM Mono',monospace; font-size:.6rem; text-transform:uppercase; }
+.rt-best-body h3 { color:#25243D; min-height:2.7rem; font-size:.97rem; line-height:1.3; letter-spacing:-.035em; margin:.35rem 0 .8rem; }
+.rt-best-metric { display:flex; justify-content:space-between; align-items:baseline; border-top:1px solid #E9E9ED; padding-top:.65rem; }
+.rt-best-metric strong { color:#272540; font-size:1.42rem; letter-spacing:-.06em; }.rt-best-metric span { color:#777888; font-size:.68rem; }
+.rt-best-body p { margin:.45rem 0 0; color:#747687; font-size:.68rem; line-height:1.4; }
+.st-key-best_buy [data-testid="stButton"] button { margin-top:.5rem; border-radius:22px; background:#25243D; color:white; }
+
+/* Review pulse cards summarize the whole product; details unfold on hover or focus. */
+.rt-pulse-track { display:flex; gap:1rem; overflow-x:auto; scroll-snap-type:x mandatory; padding:.4rem .15rem 1rem; scrollbar-color:#C9C4E6 transparent; }
+.rt-pulse-card { flex:1 0 min(230px,80vw); scroll-snap-align:start; min-height:195px; background:white; border:1px solid #E9E9EE; border-radius:21px; padding:1.1rem 1.2rem; box-shadow:0 10px 25px #24213D0B; outline-offset:3px; transition:transform .3s ease,box-shadow .3s ease; }
+.rt-pulse-card:hover,.rt-pulse-card:focus { transform:translateY(-5px); box-shadow:0 20px 32px #24213D1C; }
+.rt-pulse-top { display:flex; align-items:center; gap:.55rem; color:#77798C; font-family:'DM Mono',monospace; font-size:.57rem; letter-spacing:.05em; }
+.rt-pulse-thumb { display:grid; place-items:center; width:34px; height:34px; flex:0 0 34px; border-radius:50%; background:#F0EEF9; overflow:hidden; }
+.rt-pulse-thumb img { max-width:82%; max-height:82%; object-fit:contain; }
+.rt-pulse-top b { margin-left:auto; color:#8B7BDD; font-size:.85rem; }
+.rt-pulse-card > strong { display:block; margin:.8rem 0 .15rem; color:#25243D; font-size:2.3rem; line-height:1; letter-spacing:-.075em; }
+.rt-pulse-card h3 { margin:0; color:#34354C; font-size:.82rem; }
+.rt-pulse-detail { max-height:0; opacity:0; overflow:hidden; transform:translateY(-6px); margin:0; color:#666A7C; font-size:.73rem; line-height:1.45; transition:max-height .42s ease,opacity .35s ease,transform .35s ease,margin .35s ease; }
+.rt-pulse-card:hover .rt-pulse-detail,.rt-pulse-card:focus .rt-pulse-detail { max-height:120px; opacity:1; transform:translateY(0); margin-top:.7rem; }
+div[data-testid="stExpander"] { margin-top:1.2rem; border:1px solid #E6E5EE; border-radius:14px; background:#FFFE; }
+
+@media (max-width:900px) { .st-key-hero_compare { margin:-1rem 1rem 1rem; }.rt-hero-art { min-height:360px; }.rt-intro { min-height:0; }.st-key-spotlight .rt-feature-card.size-0 .rt-feature-image { height:310px; }.st-key-spotlight .rt-feature-card.size-1 .rt-feature-image { height:230px; }.st-key-spotlight .rt-feature-card.size-2 .rt-feature-image { height:190px; }.st-key-spotlight .rt-feature-card.size-3 .rt-feature-image { height:260px; } }
+@media (max-width:700px) { .rt-hero-art { min-height:300px; }.rt-hero-product.item-0 { width:33%; left:4%; }.rt-hero-product.item-1 { width:34%; left:35%; }.rt-hero-product.item-2 { width:33%; right:1%; }.st-key-hero_compare { margin:-1rem .1rem 1rem; padding:1rem; }.rt-hero-compare-label { display:block; }.rt-hero-compare-label strong { display:block; margin-top:.3rem; }.rt-hero-result { display:block; }.rt-hero-result span { margin:.35rem 0; }.rt-hero-result small { display:block; }.rt-vs { height:1.6rem; }.rt-category-card { height:185px; }.rt-pulse-card { flex-basis:78vw; }.rt-pulse-detail { max-height:120px; opacity:1; transform:none; margin-top:.7rem; } }
+@media (prefers-reduced-motion:reduce) { .rt-pulse-detail { max-height:120px; opacity:1; transform:none; margin-top:.7rem; } }
