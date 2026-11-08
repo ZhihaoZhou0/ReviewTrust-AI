@@ -17,12 +17,32 @@ if TYPE_CHECKING:
 
 
 _RABBIT = Path(__file__).with_name("assets") / "shopping-agent-rabbit.svg"
+_DEMO_INPUTS = {
+    "agent_need": (
+        "I'm choosing an insulated water bottle for my daily commute. "
+        "Keeping drinks cold, ease of use, and leak resistance matter most. "
+        "Which of these two is the better fit based on customer reviews?"
+    ),
+    "agent_link_0": "https://www.amazon.com/dp/B085DVHQ57",
+    "agent_link_1": "https://www.amazon.com/dp/B0D2Z1PJWT",
+}
 
 
 def _change_count(delta: int) -> None:
     st.session_state["agent_product_count"] = max(
         1, min(5, st.session_state.get("agent_product_count", 2) + delta)
     )
+
+def _restore_agent_input(key: str) -> None:
+    saved_key = f"saved_{key}"
+    if key not in st.session_state:
+        st.session_state[key] = st.session_state.get(saved_key, _DEMO_INPUTS.get(key, ""))
+    elif saved_key not in st.session_state and not st.session_state[key]:
+        # Seed an already-open dashboard once, without replacing a saved edit.
+        st.session_state[key] = _DEMO_INPUTS.get(key, "")
+
+def _save_agent_input(key: str) -> None:
+    st.session_state[f"saved_{key}"] = st.session_state[key]
 
 
 def _image(product: Product | None) -> str:
@@ -135,60 +155,67 @@ def render_shopping_agent(products: list[Product]) -> None:
             '<div class="rt-agent-hero"><div class="rt-agent-hero-copy">'
             '<span class="rt-agent-eyebrow">✳ YOUR PERSONAL SHOPPING GUIDE</span>'
             '<h2>Find the right fit, <em>with a little help.</em></h2>'
-            '<p>Tell our guide what matters to you. We will check your must-haves first, '
-            'then compare real review evidence for the products you choose.</p>'
-            '<div class="rt-agent-hero-note"><span class="rt-agent-online"></span>'
-            'Ready when you are <span>·</span> 1–5 products</div></div>'
+            '<p>Tell us what matters, then add the products you are considering. '
+            'Your guide will check must-haves and review evidence before recommending a fit.</p></div>'
             f'<div class="rt-agent-mascot"><div class="rt-agent-halo"></div><img src="data:image/svg+xml;base64,{rabbit_data}" '
             'alt="A white rabbit in profile wearing a large support headset"></div></div>',
             unsafe_allow_html=True,
         )
         st.markdown(
-            '<div class="rt-agent-step"><span>01 / TELL US WHAT MATTERS</span>'
-            '<h3>Start a conversation</h3><p>Write naturally. Include deal-breakers, '
-            'favorite features, or how you plan to use the product.</p></div>'
-            '<div class="rt-agent-guide-message"><span class="rt-agent-guide-avatar">✳</span>'
-            '<div><strong>ReviewTrust guide</strong><p>Hi there! What are you shopping for today?</p></div></div>',
+            '<div id="guided-comparison" class="rt-jump-target"></div>',
             unsafe_allow_html=True,
         )
 
         count = st.session_state["agent_product_count"]
-        with st.form("personalized_shopping_agent"):
-            need = st.text_area(
-                "Your message",
-                placeholder="For example: I need AA batteries for a wireless mouse. Battery life matters most, and I do not want AAA batteries.",
-                key="agent_need", label_visibility="collapsed",
-            )
-            st.markdown(
-                '<div class="rt-agent-step rt-agent-product-step"><span>02 / ADD YOUR OPTIONS</span>'
-                '<h3>Products to compare</h3><p>Paste Amazon links for products in our review dataset.</p></div>',
-                unsafe_allow_html=True,
-            )
-            fields = st.columns(2, gap="medium")
-            links = []
-            for index in range(count):
-                with fields[index % 2]:
+        with st.container(key="agent_form"):
+            left, right = st.columns([.95, 1.05], gap="large")
+            with left, st.container(key="agent_needs"):
+                st.markdown(
+                    '<div class="rt-agent-step"><span>GUIDED MATCH / STEP 01</span>'
+                    '<h3>Tell us what matters</h3><p>What are you shopping for? Include any must-haves or deal-breakers.</p></div>'
+                    '<div class="rt-agent-guide-message"><span class="rt-agent-guide-avatar">✳</span>'
+                    '<div><strong>ReviewTrust guide</strong><p>Hi there! What are you shopping for today?</p></div></div>',
+                    unsafe_allow_html=True,
+                )
+                _restore_agent_input("agent_need")
+                need = st.text_area(
+                    "Your message",
+                    placeholder="For example: I need AA batteries for a wireless mouse. Battery life matters most, and I do not want AAA batteries.",
+                    key="agent_need", label_visibility="collapsed",
+                    on_change=_save_agent_input, args=("agent_need",),
+                )
+            with right, st.container(key="agent_options"):
+                st.markdown(
+                    '<div class="rt-agent-step rt-agent-product-step"><span>GUIDED MATCH / STEP 02</span>'
+                    '<h3>Add your products</h3><p>Start with this example pair, or replace the links with your own.</p></div>',
+                    unsafe_allow_html=True,
+                )
+                links = []
+                for index in range(count):
                     st.markdown(
                         f'<div class="rt-agent-input-label"><span>0{index + 1}</span> PRODUCT LINK</div>',
                         unsafe_allow_html=True,
                     )
+                    link_key = f"agent_link_{index}"
+                    _restore_agent_input(link_key)
                     links.append(st.text_input(
                         f"Amazon product {index + 1}",
                         placeholder="https://www.amazon.com/dp/...",
-                        key=f"agent_link_{index}", label_visibility="collapsed",
+                        key=link_key, label_visibility="collapsed",
+                        on_change=_save_agent_input, args=(link_key,),
                     ))
-            controls = st.columns([7, 1, 1], vertical_alignment="center")
-            with controls[0]:
-                st.caption(f"{count} product{'s' if count != 1 else ''} selected · Add up to five")
-            with controls[1]:
-                st.form_submit_button("−", key="agent_remove_product", help="Remove a product",
-                                      disabled=count == 1, on_click=_change_count, args=(-1,), use_container_width=True)
-            with controls[2]:
-                st.form_submit_button("+", key="agent_add_product", help="Add a product",
-                                      disabled=count == 5, on_click=_change_count, args=(1,), use_container_width=True)
-            submitted = st.form_submit_button(
-                "Find my best match  →", type="primary", use_container_width=True
-            )
+                controls = st.columns([5, 1, 1], vertical_alignment="center")
+                with controls[0]:
+                    st.caption(f"{count} product{'s' if count != 1 else ''} selected · Add up to five")
+                with controls[1]:
+                    st.button("−", key="agent_remove_product", help="Remove a product",
+                              disabled=count == 1, on_click=_change_count, args=(-1,), use_container_width=True)
+                with controls[2]:
+                    st.button("+", key="agent_add_product", help="Add a product",
+                              disabled=count == 5, on_click=_change_count, args=(1,), use_container_width=True)
+                submitted = st.button(
+                    "Find my best match  →", key="agent_find_match", type="primary", use_container_width=True
+                )
 
         if submitted:
             with st.spinner("Checking requirements and review evidence..."):
