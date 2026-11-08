@@ -1,61 +1,84 @@
 # ReviewTrust AI
 
-**A product has 4.8 stars. Can you trust the reviews behind that number?**
+**Trust the reviews before you trust the stars.**
 
-ReviewTrust AI is a consumer-focused review intelligence platform developed for a hackathon. It helps users explore Amazon product reviews beyond the headline star rating through review reliability signals, evidence-backed pros and cons, and side-by-side product comparisons.
+*Can a 4.8-star product rating tell you what shoppers really experienced?*
 
-ReviewTrust AI does not claim to identify fake reviews with certainty. Its trust signals are explainable indicators based on historical review samples.
+ReviewTrust AI is a consumer-focused product discovery and review intelligence platform developed for a hackathon. It helps shoppers search historical Amazon product data, examine review-reliability signals, understand evidence-backed pros and cons, and compare products against their needs.
+
+The application uses a **historical review snapshot**. Its trust signals are experimental, explainable indicators—not proof that any particular review is fraudulent.
 
 ## Key Features
 
-1. **Product discovery:** Browse categories, search by product name or ASIN, and explore featured products and review-based shortlists.
-2. **Review reliability (B1):** Compare listed ratings, sampled-review means, and experimental trust-adjusted ratings. Inspect rating changes and adjusted review counts.
-3. **Evidence-backed pros and cons (B2):** Explore recurring positive and negative product aspects, supported by actual review excerpts.
-4. **Product comparison:** Paste two supported Amazon product URLs or select products to compare their review evidence side by side.
-5. **Review exploration:** Inspect star distributions, review counts, historical review windows, and supporting review excerpts.
-6. **AI Shopping Agent:** Compare one to five supported Amazon products against explicit needs. Hard requirements are enforced before B1/B2 evidence-based ranking.
+1. **Hybrid product search:** Search by product name, ASIN, or natural-language description. A custom BM25 retriever is combined with pretrained Sentence-BERT (`all-MiniLM-L6-v2`) embeddings using Weighted Reciprocal Rank Fusion (RRF).
+2. **Review reliability (B1):** Compare product-page ratings, sample-average ratings, and experimental trust-adjusted ratings; see how many review weights were adjusted.
+3. **Evidence-backed pros and cons (B2):** Extract recurring positive and negative product aspects using a lexicon-based NLP pipeline with clause segmentation and negation handling, supported by original review excerpts.
+4. **Product comparison:** Compare two products by Amazon URL or product selection, with ratings, B1 indicators, B2 themes, and original review evidence side by side.
+5. **AI Shopping Agent:** Compare up to five supported Amazon products using natural-language preferences, B1/B2 evidence, and optional Thinking Machines Inkling preference extraction. When model inference is unavailable, the agent transparently falls back to local parsing.
+6. **Three-view Streamlit dashboard:** Navigate between **AI Advisor**, **Compare**, and **Explore** to discover products, inspect evidence, and make comparisons.
+
+### Example workflow
+
+1. In **Explore**, search `something to keep my drinks cold` to find related products without using their exact names.
+2. In **Compare**, inspect two products' sampled ratings, trust-adjusted ratings, and recurring pros and cons.
+3. In **AI Advisor**, enter shopping priorities and up to five supported Amazon product links to request a review-backed recommendation.
 
 ## Architecture and Tech Stack
 
-- **Data source:** DataHive Amazon Reviews Dataset, pinned historical snapshot.
-- **Data engineering:** Python, CSV validation, cleaning, PostgreSQL, transactional loading, and Airflow orchestration.
-- **Analytics:** Python-based review reliability and aspect extraction modules.
-- **Integration:** PostgreSQL data access and precomputed B1/B2 CSV result adapters.
-- **Frontend:** Streamlit, HTML, and CSS.
-- **Testing:** Python automated tests and manual dashboard validation.
+| Component | Implementation |
+|---|---|
+| Data source | Pinned historical DataHive Amazon Reviews snapshot |
+| Data engineering | Python, pandas, CSV validation and cleaning, PostgreSQL, transactional loading, Apache Airflow |
+| Review reliability (B1) | TF-IDF review similarity, duplicate detection, heuristic review weights, trust-adjusted sample ratings |
+| Review understanding (B2) | Lexicon-based aspect extraction, sentence/clause segmentation, negation-aware sentiment rules, supporting excerpts |
+| Keyword search | Custom BM25 over product titles and category information |
+| Semantic search | Sentence Transformers `all-MiniLM-L6-v2`, 384-dimensional embeddings, cosine similarity |
+| Hybrid ranking | Weighted RRF: 30% BM25, 70% Sentence-BERT |
+| AI Shopping Agent | Natural-language preference extraction through Inkling when available, local fallback, B1/B2 evidence-based comparisons |
+| Application | Streamlit, Python data access layer, HTML/CSS |
+| Validation | Pytest regression tests, NLP evaluations, retrieval benchmark, manual UI walkthroughs |
 
-The MVP uses a Python data access layer rather than a separate FastAPI service.
+The MVP uses a **Python data access layer**, not a separate FastAPI service. Product and review records are stored in PostgreSQL; precomputed B1/B2 analysis files are read by the dashboard. The current local demo uses Docker-based PostgreSQL.
+
+### Search behavior
+
+- **Short queries (fewer than four whitespace-separated words):** BM25.
+- **Longer natural-language queries:** BM25 + Sentence-BERT rankings fused with weighted RRF.
+- **Exact ASINs:** Exact product lookup.
+
+The routing threshold and fusion weights are implementation choices, not proven optimal settings. The Sentence-BERT model is used **pretrained**, without task-specific fine-tuning.
 
 ## Build Status
 
 | Workstream | Scope | Status |
-| --- | --- | --- |
-| A1 — Data Foundation | Source audit, cleaning, schema, PostgreSQL snapshot import | Integrated |
-| A2 — Data Pipeline | Data quality, incremental loading, Airflow orchestration | Integrated for pinned snapshot |
-| B1 — Trust Analytics | Review reliability signals and adjusted ratings | Integrated |
-| B2 — NLP | Evidence-backed pros and cons extraction | Integrated |
-| C — Integration | PostgreSQL access and B1/B2 result adapters | Integrated for dashboard MVP |
-| D — Dashboard | Discovery, review evidence, B1/B2 views, product comparison | Integrated |
+|---|---|---|
+| A1 – Data Foundation | Source audit, cleaning, schema, PostgreSQL snapshot import | Integrated |
+| A2 – Data Pipeline | Data quality, incremental loading, Airflow orchestration | Integrated |
+| B1 – Trust Analytics | Review reliability signals and trust-adjusted ratings | Integrated |
+| B2 – NLP | Aspect-based pros/cons extraction and evaluation | Integrated |
+| C – Integration | PostgreSQL access and B1/B2 result adapters | Integrated |
+| D – Dashboard | AI Advisor, Compare, Explore, and review evidence | Integrated |
+| Hybrid Product Search | BM25, Sentence-BERT, RRF, and search evaluation | Integrated |
+| AI Shopping Agent | Requirements parsing, evidence-based ranking, optional Inkling and local fallback | Integrated |
+| Regression Validation | 90 tests and 10 subtests passed on the tested `main` version | Passed |
 
 ## Data Foundation and Pipeline
 
-We use the pinned [DataHive Amazon Reviews Dataset](https://huggingface.co/datasets/datahiveai/Amazon-Reviews-Dataset), revision `2531d9083bd3aab11261eab7e69d0d0f358a6d6f`.
+The project uses the pinned [DataHive Amazon Reviews Dataset](https://huggingface.co/datasets/datahiveai/Amazon-Reviews-Dataset), revision `2531d9083bd3aab11261eab7e69d0d0f358a6d6f`.
 
-The source contains:
+The audited source contains:
 
-- 2,727 products.
-- 255,966 review rows.
-- 3,832 additional rows with exactly repeated review content, retained for analysis.
+- **2,727 products**.
+- **255,966 review rows**.
+- **3,832 additional rows with exactly repeated review content**, retained for analysis and traceability.
 
-Most reviewed products have at most 100 sampled reviews. Product-page ratings and sampled-review means are separate measures.
+Most reviewed products have at most 100 sampled reviews. **Product-page ratings and sample-review means are separate measures** and should not be interpreted as before/after effects of B1.
 
-A1 verifies raw-file SHA-256 digests, cleans the CSVs without collapsing repeated reviews, creates PostgreSQL tables and indexes, and imports the snapshot transactionally.
+A1 verifies raw-file SHA-256 digests, cleans CSV data without collapsing repeated reviews, creates PostgreSQL tables and indexes, and imports the snapshot transactionally.
 
-A2 validates cleaned data against the A1 contract and audited counts, writes review batches with transactional checkpoints, and orchestrates verification, cleaning, validation, loading, and monitoring with Airflow.
+A2 checks cleaned data against the A1 contract and audited counts, uses transactional batch checkpoints, and orchestrates verification, cleaning, validation, loading, and monitoring with Airflow. Replayed batches are skipped by source position; repeated review content remains available for analysis.
 
-Repeated batches are skipped by source position; repeated review content remains available for analysis. The pinned historical snapshot is not a live data stream.
-
-Documentation:
+Detailed documentation:
 
 - [Source Audit](docs/data-audit.md)
 - [Data Contract](docs/data-contract.md)
@@ -67,14 +90,16 @@ Documentation:
 
 ### Prerequisites
 
-- Python 3.12
-- Docker Desktop or Docker Engine with Compose
+- Python **3.12**
+- Docker Desktop, or Docker Engine with Compose
 - Git
-- A local PostgreSQL client, or PostgreSQL tools inside the Docker container
+- PostgreSQL client tools for some snapshot import operations (or use the documented Docker-based alternative)
 
-### 1. Set Up Python
+Clone the repository and run the commands from its root directory.
 
-**Windows PowerShell:**
+### 1. Set up Python dependencies
+
+**Windows PowerShell**
 
 ```powershell
 py -3.12 -m venv .venv
@@ -84,29 +109,7 @@ python -m pip install -r requirements-analytics.txt
 python -m pip install -r requirements-dashboard.txt
 ```
 
-To enable Thinking Machines Inkling preference extraction, set
-`TINKER_API_KEY` in the local environment before starting Streamlit. The
-application does not display or persist this key. Without it, the agent uses a
-conservative local parser and clearly labels the fallback.
-
-Set the shared team key only in the local terminal that launches Streamlit;
-do not put it in Git, `launch.json`, or Streamlit configuration files.
-
-**Windows PowerShell:**
-
-```powershell
-$env:TINKER_API_KEY = "paste-the-team-key-here"
-python -m streamlit run dashboard/app.py
-```
-
-**Linux/macOS:**
-
-```bash
-export TINKER_API_KEY="paste-the-team-key-here"
-python -m streamlit run dashboard/app.py
-```
-
-**Linux/macOS:**
+**Linux / macOS**
 
 ```bash
 python3.12 -m venv .venv
@@ -116,13 +119,11 @@ python -m pip install -r requirements-analytics.txt
 python -m pip install -r requirements-dashboard.txt
 ```
 
-### 2. Prepare the Dataset
+### 2. Prepare the historical dataset (first-time setup)
 
-Download `products.csv` and `reviews.csv` from the pinned DataHive dataset revision into `data/raw/`.
+Download `products.csv` and `reviews.csv` from the **pinned DataHive dataset revision** into `data/raw/`. Raw data files are intentionally excluded from Git.
 
-The raw data files are excluded from Git.
-
-See [Database Setup](docs/database-setup.md) for detailed source verification and initialization instructions.
+Follow the [Database Setup guide](docs/database-setup.md) for source verification and initial database setup.
 
 ### 3. Start PostgreSQL
 
@@ -130,67 +131,138 @@ See [Database Setup](docs/database-setup.md) for detailed source verification an
 docker compose up -d --wait db
 ```
 
-Initialize the database using the documented A1 snapshot-loading process:
+For a first-time database initialization, follow the A1 snapshot import procedure:
 
 ```bash
 python pipeline/load_snapshot.py
 ```
 
-The snapshot importer requires PostgreSQL client tools. On Windows, where `psql` may not be installed locally, follow the Docker-based alternative in the database setup documentation.
+The snapshot importer uses PostgreSQL client tools. On Windows, if `psql` is not installed, use the Docker-based alternative in [Database Setup](docs/database-setup.md). **If the local database is already populated, do not reimport the snapshot just to launch the dashboard.**
 
-### 4. Launch the Dashboard
+### 4. Optional: configure the AI Shopping Agent API key
+
+The dashboard can run **without** a Thinking Machines API key; the shopping agent then uses its local rule-based fallback. To enable model-based preference extraction, provide `TINKER_API_KEY` **as an environment variable in the same shell that starts Streamlit**.
+
+You may store the key in a local project-root `.env` file (ignored by Git) with this format:
+
+```dotenv
+TINKER_API_KEY=YOUR_NEW_PRIVATE_KEY
+```
+
+**Important:** The current agent reads `TINKER_API_KEY` from the process environment; merely creating `.env` does **not** automatically load it.
+
+**Windows PowerShell — load from local `.env` without printing the key**
+
+```powershell
+$env:TINKER_API_KEY = (Get-Content .env | Where-Object { $_ -match '^TINKER_API_KEY=' } | Select-Object -First 1) -replace '^TINKER_API_KEY=', ''
+python -c "import os; print('TINKER_API_KEY configured:', bool(os.getenv('TINKER_API_KEY')))"
+```
+
+**Linux / macOS — set the environment variable securely for the current shell**
+
+```bash
+read -r -s -p 'TINKER_API_KEY: ' TINKER_API_KEY; echo
+export TINKER_API_KEY
+```
+
+Never commit actual keys to GitHub, add them to a tracked file, or show them in screenshots or logs. If a key is exposed, revoke and rotate it. A configured key does not guarantee that the external API will be available; check the agent's fallback warning during a demo.
+
+### 5. Launch the dashboard
+
+With PostgreSQL running and the virtual environment active:
 
 ```bash
 python -m streamlit run dashboard/app.py
 ```
 
-Open the local URL displayed by Streamlit, typically:
+Open the local address printed by Streamlit, typically `http://localhost:8501`.
 
-`http://localhost:8501`
-
-The dashboard uses PostgreSQL for product and review data and reads precomputed B1/B2 results from:
+The application reads product/review data from PostgreSQL and precomputed analysis files:
 
 ```text
 data/processed/product_rating_comparison.csv
 data/processed/product_pros_cons_cards.csv
 ```
 
-These two analysis result files are included in the repository.
+These two precomputed analysis files are included in the repository.
 
-### 5. Run Tests
+**Windows troubleshooting (OpenBLAS memory/thread initialization):** If Python exits during numerical library import with an `OpenBLAS ... Memory allocation` error, set these variables **before starting Python**:
+
+```powershell
+$env:OPENBLAS_NUM_THREADS = '1'
+$env:OMP_NUM_THREADS = '1'
+$env:MKL_NUM_THREADS = '1'
+```
+
+### 6. Run automated tests
 
 ```bash
 python -m pytest tests/ -q
 ```
 
-Latest local regression result on the AI Shopping Agent branch:
+**Latest confirmed local regression result on the tested `main` version (`b557a17`): 90 passed, 10 subtests passed.**
 
-**80 passed, 10 subtests passed.**
+If third-party pytest plugin auto-loading interferes with local test execution, it can be disabled for that shell:
 
-## Airflow Pipeline
+```powershell
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = '1'
+python -m pytest tests/ -q
+```
 
-Start the Airflow services:
+The regression suite checks code behavior; it does not establish that the external Inkling API is reachable or that all UI interactions are covered automatically.
+
+### 7. Stop local services
+
+Stop Streamlit with `Ctrl+C` in its running terminal. To stop the project containers without deleting the database volume:
+
+```bash
+docker compose stop
+```
+
+## Airflow Pipeline (optional)
+
+To run the Airflow services in addition to the database:
 
 ```bash
 docker compose -f compose.yaml -f compose.airflow.yaml up -d --build
 ```
 
-Open `http://localhost:8080` and manually trigger the `reviewtrust_etl` DAG.
+Open `http://localhost:8080` and manually trigger the `reviewtrust_etl` DAG. It is intentionally unscheduled for the historical snapshot and contains five tasks for source verification, cleaning, validation, loading, and monitoring.
 
-The DAG is intentionally unscheduled for the historical snapshot. Its five tasks verify source files, clean, validate, load, and monitor.
+Airflow is **not required** merely to view an already populated dashboard.
+
+## Evaluation Notes
+
+The search evaluation script is available at `scripts/evaluate_search.py`:
+
+```bash
+python -m scripts.evaluate_search
+```
+
+The preliminary retrieval experiment used **three queries and one labeled expected product per query**:
+
+| Retrieval method | Hit@5 | MRR |
+|---|---:|---:|
+| BM25 | 0.667 | 0.673 |
+| Sentence-BERT | 1.000 | 0.750 |
+| Hybrid Search | 1.000 | 0.511 |
+
+These numbers are a small reproducibility/smoke benchmark, **not a general accuracy estimate**. On this sample, Hybrid did not outperform standalone Sentence-BERT on MRR.
+
+The B2 pipeline also has labeled evaluation and human-review tooling; see the source code and project documentation for its specific evaluation protocol and results.
 
 ## Limitations
 
-- The dataset is historical, not a live Amazon feed.
-- Product-page ratings may differ from sampled-review averages.
+- Review data is historical, not a live Amazon feed; product availability and current ratings may differ.
+- Product-page ratings and sample-derived scores use different underlying populations.
 - Most products have limited sampled review coverage.
-- Trust-adjusted ratings are experimental analytical estimates, not official Amazon ratings.
-- Unusual review patterns are not proof of fraud.
-- B2 pros and cons reflect patterns in available review text, not guaranteed product properties.
-- The dashboard requires a populated PostgreSQL database for its core product and review views.
-- Requirements that cannot be verified from historical catalog data remain
-  unknown and are excluded from the recommendation ranking.
+- B1 trust-adjusted ratings are experimental estimates, **not official Amazon ratings**; unusual text patterns do not prove fraud.
+- Isolation Forest and review-level SBERT similarity were explored separately; they do not directly determine the current B1 weighted rating.
+- B2 pros and cons represent extracted patterns in available text, not guaranteed product properties.
+- Search fusion weights and query routing were not optimized on a large benchmark.
+- The core dashboard requires a populated PostgreSQL database; AI preference extraction can fall back when Inkling is unavailable.
+- Requirements that cannot be verified from available catalog and review evidence should be treated as uncertain rather than confirmed matches.
 
 ## Project Documentation
 
-For detailed dashboard behavior, integration interfaces, and setup notes, see [Dashboard Guide](docs/dashboard-handoff.md).
+For detailed UI behavior, data interfaces, and local setup notes, see the [Dashboard Guide](docs/dashboard-handoff.md). For pipeline details, see the other guides linked under [Data Foundation and Pipeline](#data-foundation-and-pipeline).
